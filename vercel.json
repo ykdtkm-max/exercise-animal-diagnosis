@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "name": "exercise-v2-diagnosis",
   "builds": [
     {
       "src": "prototype/exercise-v2/**",
