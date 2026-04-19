@@ -1,0 +1,32 @@
+/* ── 運動タイプ診断: 季節別プラン ── */
+.exercise-seasonal-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.exercise-seasonal-card {
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 20px;
+  background: var(--gray-50);
+}
+.exercise-seasonal-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.exercise-seasonal-emoji {
+  font-size: 18px;
+}
+.exercise-seasonal-label {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text);
+}
+.exercise-seasonal-body {
+  font-size: 13px;
+  line-height: 1.75;
+  color: var(--gray-700);
+  margin: 0;
+}
