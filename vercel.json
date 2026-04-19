@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "name": "exercise-v2-diagnosis",
+  "builds": [
+    {
+      "src": "prototype/exercise-v2/**",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/prototype/exercise-v2/$1"
+    }
+  ]
+}
