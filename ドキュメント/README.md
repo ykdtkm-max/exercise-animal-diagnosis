@@ -83,9 +83,9 @@ src/app/api/exercise-diagnose/
 └── route.ts                        # POST API（計算 → DB保存 → JSON返却）
 ```
 
-### 静的HTMLプロトタイプ（v2：4軸32問）
+### 静的HTMLアプリ（v2：4軸・運動アニマル SPA）
 
-`prototype/exercise-v2/` に置いています（ログイン・API なし）。
+運用・Vercel デプロイの正はリポジトリ直下の **`fittness_type-main/`**（ログイン・API なし、ハッシュルーティング）。
 
-- **起動**: `npx serve prototype/exercise-v2` を実行し、表示された URL を開く
-- **ルーティング**: `#/`（ウェルカム）・`#/types`・`#/types/<CODE>`・`#/quiz`・`#/result`・`#/result/<CODE>`
+- **起動**: `npx serve fittness_type-main` を実行し、表示された URL を開く
+- **ルーティング**: `#/`（ウェルカム）・`#/types`・`#/types/<CODE>`・`#/quiz`・`#/result`・`#/result/<CODE>`・`#/secret-compat/<CODE>`
