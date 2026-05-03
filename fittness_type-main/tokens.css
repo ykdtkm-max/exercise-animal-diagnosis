@@ -1,0 +1,95 @@
+/* ============================================================
+   16types — Design Tokens v0.4
+   カラフル × ポップ × ミニマル線
+   - 線(border)を最小限に。色面で構造を作る
+   - serif禁止。和欧文ともゴシック/サンセリフ
+   - 背景にカラーがある世界観
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700;900&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
+
+:root {
+  /* ---- Surface ---- */
+  --paper:        #FFF8EE;   /* ほんのり温かい白 */
+  --paper-card:   #FFFFFF;
+  --paper-mute:   #F2EFE6;
+  --cream:        #FFE9C2;   /* 黄クリーム */
+  --sky:          #DDF1FF;   /* 水色 */
+  --mint:         #D8F5DD;   /* ミント */
+  --peach:        #FFE0D6;   /* ピーチ */
+  --lilac:        #ECE0FF;
+  --bubble:       #FFE2EF;
+
+  /* ---- Ink (使用最小限) ---- */
+  --ink:          #2B2535;   /* ほんのり紫味のチャコール */
+  --ink-soft:     #5C5466;
+  --ink-mute:     #948CA0;
+  --ink-faint:    #D8D2E0;
+
+  /* ---- Vivid candy palette ---- */
+  --red:          #FF4D5A;
+  --coral:        #FF7A6B;
+  --orange:       #FF9A3C;
+  --yellow:       #FFD23F;
+  --lime:         #B8E94A;
+  --green:        #3DD68C;
+  --teal:         #2DC8C9;
+  --blue:         #4A8DFF;
+  --indigo:       #6B5CFF;
+  --purple:       #B665E8;
+  --pink:         #FF6FA8;
+  --rose:         #FF98C5;
+  --brown:        #B07A4A;
+
+  /* ---- Shadows: 色付きハードシャドウ (黒は避ける) ---- */
+  --shadow-pink:    4px 4px 0 0 rgba(255,111,168,.45);
+  --shadow-yellow:  4px 4px 0 0 rgba(255,210,63,.55);
+  --shadow-blue:    4px 4px 0 0 rgba(74,141,255,.35);
+  --shadow-soft:    0 6px 20px rgba(43, 37, 53, .08);
+  --shadow-card:    0 8px 0 0 rgba(43, 37, 53, .06), 0 2px 14px rgba(43,37,53,.06);
+
+  /* ---- Type scale ---- */
+  --t-display: clamp(36px, 8vw, 56px);
+  --t-h1:      clamp(26px, 6vw, 34px);
+  --t-h2:      clamp(20px, 5vw, 26px);
+  --t-h3:      18px;
+  --t-body:    15px;
+  --t-small:   13px;
+  --t-tiny:    11px;
+
+  /* ---- Radii (たっぷり丸く) ---- */
+  --r-sm: 12px;
+  --r-md: 18px;
+  --r-lg: 24px;
+  --r-xl: 32px;
+  --r-pill: 999px;
+
+  /* ---- Spacing ---- */
+  --s-1: 4px;  --s-2: 8px;  --s-3: 12px; --s-4: 16px;
+  --s-5: 20px; --s-6: 24px; --s-8: 32px; --s-10: 40px;
+  --s-12: 48px; --s-16: 64px;
+
+  /* ---- Type families: ALL GOTHIC, NO SERIF ---- */
+  --font-jp:    "Zen Maru Gothic", system-ui, sans-serif;
+  --font-en:    "Plus Jakarta Sans", -apple-system, system-ui, sans-serif;
+
+  --ease-out: cubic-bezier(.22, 1, .36, 1);
+  --ease-spring: cubic-bezier(.34, 1.56, .64, 1);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--font-jp);
+  font-feature-settings: "palt";
+  color: var(--ink);
+  background: var(--paper);
+  font-size: var(--t-body);
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.en { font-family: var(--font-en); letter-spacing: 0; }
+.typecode { font-family: var(--font-en); font-weight: 800; letter-spacing: 0.14em; }
+.numeral { font-family: var(--font-en); font-weight: 700; letter-spacing: 0.02em; }

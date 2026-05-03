@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'"
+    />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <title>運動アニマル図鑑 — あなたの運動アニマルを診断しよう！</title>
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <meta property="og:title" content="運動アニマル図鑑 — あなたの運動アニマルを診断しよう！" />
+    <meta property="og:description" content="4つの軸から、16アニマルの運動スタイルを判定します。" />
+    <meta property="og:image" content="OGP.png" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="運動アニマル図鑑 — あなたの運動アニマルを診断しよう！" />
+    <meta name="twitter:description" content="4つの軸から、16アニマルの運動スタイルを判定します。" />
+    <meta name="twitter:image" content="OGP.png" />
+    <link rel="stylesheet" href="tokens.css" />
+    <link rel="stylesheet" href="components.css?v=exercise-c6" />
+    <link rel="stylesheet" href="styles.css?v=exercise-v133" />
+  </head>
+  <body class="app-booting">
+    <!-- ═══════════════ Welcome ═══════════════ -->
+    <section
+      class="screen screen--active"
+      id="screenWelcome"
+      data-screen="welcome"
+    >
+      <div class="stage">
+        <div class="bg-blob b1"></div>
+        <div class="bg-blob b2"></div>
+        <div class="bg-blob b3"></div>
+        <div class="bg-blob b4"></div>
+
+        <header class="top-bar">
+          <button class="brand" id="headerBrand">
+            <span class="brand__logo-mark"><img src="favicon.png" alt="" /></span>
+            <span class="brand__logo-word"><span>運動</span>アニマル図鑑</span>
+          </button>
+        </header>
+
+        <main class="hero">
+          <h1 class="hero__title">
+            あなたの<em>運動アニマル</em>を<br />診断しよう！
+          </h1>
+
+          <div class="cluster">
+            <span class="sparkle s1">✦</span>
+            <span class="sparkle s2">✧</span>
+            <span class="sparkle s3">✦</span>
+
+            <div class="float float--tl" data-code="GFTC"></div>
+            <div class="float float--tr" data-code="SPAD"></div>
+            <div class="float float--side-l" data-code="GPAD"></div>
+            <div class="float float--side-r" data-code="GPTC"></div>
+            <div class="float float--center" data-code="SFAC"></div>
+            <div class="float float--bl" data-code="GFAD"></div>
+            <div class="float float--br" data-code="SFTD"></div>
+          </div>
+
+          <div class="cta">
+            <button class="btn btn--primary" id="btnStartQuiz">
+              診断を始める
+            </button>
+          </div>
+        </main>
+
+        <section
+          class="strip"
+          id="welcomeStrip"
+          tabindex="0"
+          role="button"
+          aria-label="16アニマル一覧を見る"
+        >
+          <div class="strip__label">
+            <b>16 ANIMALS</b>
+            <small>図鑑の仲間たち</small>
+          </div>
+          <div class="strip__track" id="strip-track"></div>
+        </section>
+      </div>
+    </section>
+
+    <!-- ═══════════════ Types List ═══════════════ -->
+    <section class="screen" id="screenTypes" data-screen="types">
+      <div class="stage types-stage">
+        <header class="types-nav">
+          <button class="iconbtn" id="typesBack" aria-label="戻る">←</button>
+          <span class="brand-min">運動アニマル図鑑</span>
+          <span style="width: 44px"></span>
+        </header>
+        <h1 class="types-title">運動アニマル図鑑</h1>
+        <p class="types-lead">タップすると詳細を表示します。</p>
+        <div class="types-grid" id="typesGrid"></div>
+        <footer class="types-footer">
+          <button type="button" class="types-footer__top" id="typesGoTop">
+            最初の画面へ
+          </button>
+        </footer>
+      </div>
+    </section>
+
+    <!-- ═══════════════ Quiz ═══════════════ -->
+    <section class="screen" id="screenQuiz" data-screen="quiz">
+      <div class="stage">
+        <header class="nav-bar">
+          <span class="nav-spacer" aria-hidden="true"></span>
+          <button class="iconbtn" id="quizClose" aria-label="閉じる">×</button>
+        </header>
+
+        <div class="quiz-progress-meta">
+          <span class="nav-meta"
+            ><b id="quizCurrentNum">01</b
+            ><span id="quizTotalNum"> / 32</span></span
+          >
+        </div>
+
+        <section class="progress">
+          <div class="progress__bar">
+            <div class="progress__fill" id="cardProgressFill"></div>
+          </div>
+        </section>
+
+        <section class="qcard" id="qCenterWrap">
+          <div id="qContent" class="anim-fwd">
+            <h2 class="qcard__text" id="qText"></h2>
+          </div>
+
+          <div id="qOptions"></div>
+
+          <div class="likert-labels">
+            <span>そう思わない</span>
+            <span>そう思う</span>
+          </div>
+        </section>
+
+        <div class="bottom-nav">
+          <button
+            class="btn btn--secondary btn--sm"
+            id="qBackBottom"
+            aria-label="前の質問へ"
+          >
+            ← 戻る
+          </button>
+          <button class="btn btn--primary btn--sm" id="qNext">
+            次へ <span class="arrow">→</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════ Result ═══════════════ -->
+    <section class="screen" id="screenResult" data-screen="result">
+      <div class="stage result-stage">
+        <header class="nav-bar">
+          <span style="width:44px"></span>
+          <button class="brand result-brand" id="resultBrand" aria-label="最初の画面に戻る">
+            <span class="brand__logo-mark"><img src="favicon.png" alt="" /></span>
+            <span class="brand__logo-word"><span>運動</span>アニマル図鑑</span>
+          </button>
+          <span style="width:44px"></span>
+        </header>
+
+        <section class="result-hero" id="resultHero">
+          <span class="hero__sparkle s1">✦</span>
+          <span class="hero__sparkle s2">✧</span>
+          <span class="hero__sparkle s3">✦</span>
+          <span class="hero__sparkle s4">✧</span>
+          <div class="hero__code-main" id="heroCode"></div>
+          <div class="hero__char" id="heroChar"></div>
+          <div class="hero__title" id="heroTitle"></div>
+          <h1 class="hero__name" id="heroName"></h1>
+          <p class="hero__catch" id="heroCatch"></p>
+        </section>
+
+        <!-- 動的セクション -->
+        <div id="resultSections"></div>
+
+        <div class="result-actions">
+          <p id="resultShareHeading" class="result-actions__share-heading">結果画像を保存してシェア</p>
+          <div
+            class="result-actions__share"
+            role="group"
+            aria-labelledby="resultShareHeading"
+          >
+            <button class="btn btn--instagram" id="btnShareInstagram" type="button" aria-label="Instagramでシェア">
+              Instagram
+            </button>
+            <button class="btn btn--x" id="btnShareX" type="button" aria-label="Xでシェア">
+              <svg class="btn--x__logo" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path
+                  fill="currentColor"
+                  d="M18.24 2H21.8l-7.78 8.9L23.18 22h-7.17l-5.61-7.34L3.97 22H.41l8.32-9.51L-.05 2h7.35l5.08 6.71L18.24 2Zm-1.25 18.05h1.97L6.23 3.85H4.12l12.87 16.2Z"
+                />
+              </svg>
+            </button>
+            <button class="btn btn--line" id="btnShareLine" type="button" aria-label="LINEでシェア">
+              LINE
+            </button>
+          </div>
+          <div class="result-actions__catalog">
+            <section
+              class="strip"
+              id="resultStrip"
+              tabindex="0"
+              role="button"
+              aria-label="16アニマル一覧を見る"
+            >
+              <div class="strip__label">
+                <b>16 ANIMALS</b>
+                <small>図鑑の仲間たち</small>
+              </div>
+              <div class="strip__track" id="strip-track-result"></div>
+            </section>
+            <div class="result-catalog-after">
+              <button type="button" class="types-footer__top" id="resultGoTop" aria-label="ページの先頭（トップ）へスクロール">
+                トップへ戻る
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════ Secret Compatibility ═══════════════ -->
+    <section class="screen" id="screenSecretCompat" data-screen="secretCompat">
+      <div class="stage secret-compat-stage">
+        <header class="types-nav">
+          <button class="iconbtn" id="secretCompatBack" aria-label="診断結果に戻る">←</button>
+          <span class="brand-min">アニマル相性診断</span>
+          <span style="width: 44px"></span>
+        </header>
+        <div id="secretCompatPageBody"></div>
+      </div>
+    </section>
+
+    <!-- ═══════════════ Type Detail (Bottom Sheet) ═══════════════ -->
+    <div id="typeModal" class="sheet-root" hidden>
+      <div class="sheet-backdrop" id="typeModalBackdrop"></div>
+      <div
+        class="bottom-sheet"
+        id="typeModalSheet"
+        role="dialog"
+        aria-modal="true"
+      >
+        <div class="sheet-handle-bar"></div>
+        <button class="sheet-close" id="typeModalClose" aria-label="閉じる">
+          ✕
+        </button>
+        <div class="sheet-scroll" id="typeModalScroll">
+          <div id="typeModalBody" class="sheet-body"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════ 診断確認モーダル ═══════════════ -->
+    <div class="modal-bg" id="diagnoseDialog" hidden>
+      <div class="modal">
+        <div class="modal__icon">✦</div>
+        <h2>この回答で<br />診断しますか？</h2>
+        <p>
+          すべての質問に回答が完了しました！<br />あなたの運動アニマルを診断します。
+        </p>
+        <div class="modal__actions">
+          <button class="btn btn--primary" id="diagnoseConfirm">
+            診断する <span class="arrow">→</span>
+          </button>
+          <button class="btn btn--secondary" id="diagnoseCancel">
+            回答を見直す
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════ 中断確認モーダル ═══════════════ -->
+    <div class="modal-bg" id="quitDialog" hidden>
+      <div class="modal">
+        <div
+          class="modal__icon"
+          style="background: var(--red); box-shadow: 0 6px 0 0 #c73b47"
+        >
+          ✕
+        </div>
+        <h2>診断を中断しますか？</h2>
+        <p>回答内容は保存されません。</p>
+        <div class="modal__actions">
+          <button class="btn btn--primary" id="quitConfirm">
+            最初の画面へ
+          </button>
+          <button class="btn btn--secondary" id="quitCancel">続ける</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-bg" id="resultDiscardDialog" hidden>
+      <div class="modal">
+        <div class="modal__icon">✦</div>
+        <h2>最初の画面に戻りますか？</h2>
+        <p>最初の画面に戻ると診断結果（4軸スコア）が<br />消えてしまいます。戻りますか？</p>
+        <div class="modal__actions">
+          <button type="button" class="btn btn--primary" id="resultDiscardConfirm">
+            最初の画面へ
+          </button>
+          <button type="button" class="btn btn--secondary" id="resultDiscardCancel">
+            キャンセル
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-bg" id="instagramShareDialog" hidden>
+      <div class="modal modal--share">
+        <button
+          type="button"
+          class="share-modal-dismiss"
+          id="instagramShareDismiss"
+          hidden
+          aria-label="閉じる"
+        >
+          ×
+        </button>
+        <div class="modal__icon">✦</div>
+        <h2 id="shareDialogTitle">Instagramでシェア</h2>
+        <ol class="share-steps">
+          <li id="shareStepSave">「画像を保存する」で結果画像を保存</li>
+          <li id="shareStepOpen">Instagramを開いて投稿・ストーリーズに追加</li>
+          <li class="share-steps__highlight" id="shareStepHighlight">仲間たちが喜ぶ！！</li>
+        </ol>
+        <div class="modal__actions">
+          <button type="button" class="btn btn--share-save is-promise" id="instagramSaveImage">
+            画像を保存する
+          </button>
+          <button type="button" class="btn btn--secondary" id="instagramShareClose">
+            閉じる
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 非表示の互換要素 -->
+    <div id="headerQuizProgress" hidden>
+      <span id="headerQuizCount"></span>
+      <div><div id="headerQuizFill"></div></div>
+    </div>
+
+    <script src="chars-data.js?v=exercise-ch6"></script>
+    <script src="types-data.js?v=exercise-v2"></script>
+    <script src="data.js?v=exercise-v3"></script>
+    <script src="app.js?v=exercise-v133"></script>
+  </body>
+</html>

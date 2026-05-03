@@ -1,0 +1,147 @@
+/* ============================================================
+   16types — Components v0.4
+   かわいく・カラフル・線少なめ
+   ============================================================ */
+
+/* ---------- Button ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 8px;
+  padding: 18px 28px;
+  border-radius: var(--r-pill);
+  font-family: var(--font-jp);
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: 0.04em;
+  border: none;
+  cursor: pointer;
+  transition: transform .15s var(--ease-spring), box-shadow .15s, filter .15s;
+  text-decoration: none;
+  user-select: none;
+  position: relative;
+}
+.btn:hover  { transform: translateY(-2px); }
+.btn:active { transform: translateY(1px); }
+
+/* Primary: 赤ベタ + 下に色影 */
+.btn--primary {
+  background: var(--red);
+  color: #fff;
+  box-shadow: 0 6px 0 0 #C73B47, 0 12px 24px rgba(255,77,90,.32);
+}
+.btn--primary:hover  { box-shadow: 0 8px 0 0 #C73B47, 0 16px 28px rgba(255,77,90,.4); }
+.btn--primary:active { box-shadow: 0 2px 0 0 #C73B47, 0 4px 12px rgba(255,77,90,.2); }
+
+/* Secondary: 白ベタ + 薄い影 */
+.btn--secondary {
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 4px 0 0 #ECE5D6, 0 8px 18px rgba(43,37,53,.08);
+}
+.btn--secondary:hover  { box-shadow: 0 6px 0 0 #ECE5D6, 0 12px 22px rgba(43,37,53,.12); }
+.btn--secondary:active { box-shadow: 0 1px 0 0 #ECE5D6, 0 2px 6px rgba(43,37,53,.06); }
+
+.btn--yellow {
+  background: var(--yellow);
+  color: var(--ink);
+  box-shadow: 0 6px 0 0 #DDB31E, 0 12px 22px rgba(255,210,63,.32);
+}
+.btn--yellow:hover { box-shadow: 0 8px 0 0 #DDB31E, 0 16px 26px rgba(255,210,63,.4); }
+
+.btn--blue {
+  background: var(--blue);
+  color: #fff;
+  box-shadow: 0 6px 0 0 #2D6CD9, 0 12px 22px rgba(74,141,255,.32);
+}
+
+.btn--mint {
+  background: var(--green);
+  color: #fff;
+  box-shadow: 0 6px 0 0 #28A66B, 0 12px 22px rgba(61,214,140,.32);
+}
+
+.btn .arrow { font-family: var(--font-en); font-weight: 800; font-size: 18px; }
+.btn .meta  { font-family: var(--font-en); font-weight: 600; font-size: 12px; opacity: .85; margin-left: 4px; }
+
+/* ---------- Pill / Tag ---------- */
+.pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--r-pill);
+  font-size: var(--t-tiny);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  background: var(--cream);
+  color: var(--ink);
+}
+.pill--red    { background: var(--red); color: #fff; }
+.pill--yellow { background: var(--yellow); color: var(--ink); }
+.pill--blue   { background: var(--blue); color: #fff; }
+.pill--green  { background: var(--green); color: #fff; }
+.pill--pink   { background: var(--pink); color: #fff; }
+.pill--mint   { background: var(--mint); color: #2B7A4F; }
+.pill--lilac  { background: var(--lilac); color: #5A3FB0; }
+.pill--sky    { background: var(--sky); color: #235E8E; }
+.pill--ink    { background: var(--ink); color: #fff; }
+
+/* ---------- Card ---------- */
+.card {
+  background: var(--paper-card);
+  border-radius: var(--r-lg);
+  padding: 22px;
+  box-shadow: var(--shadow-card);
+}
+
+/* ---------- Type-card (キャラ図鑑カード) ---------- */
+.tcard {
+  position: relative;
+  background: var(--paper-card);
+  border-radius: var(--r-lg);
+  padding: 18px 14px 14px;
+  border: none;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  overflow: hidden;
+  transition: transform .15s var(--ease-spring), box-shadow .15s;
+  /* .btn--secondary と同系: 下方向の「台」＋柔らかい奥行き */
+  box-shadow:
+    0 4px 0 0 #ECE5D6,
+    0 8px 18px rgba(43, 37, 53, 0.08);
+}
+.tcard:focus { outline: none; }
+.tcard:focus-visible {
+  box-shadow:
+    0 4px 0 0 #ECE5D6,
+    0 8px 18px rgba(43, 37, 53, 0.08),
+    0 0 0 3px rgba(74, 141, 255, 0.28);
+}
+.tcard:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 7px 0 0 #ECE5D6,
+    0 14px 26px rgba(43, 37, 53, 0.12);
+}
+.tcard:active {
+  transform: translateY(1px);
+  box-shadow:
+    0 1px 0 0 #ECE5D6,
+    0 3px 10px rgba(43, 37, 53, 0.07);
+}
+
+.tcard__code  { position: absolute; top: 12px; left: 14px; font-family: var(--font-en); font-weight: 800; font-size: 12px; letter-spacing: 0.16em; color: var(--ink); }
+
+.tcard__visual {
+  margin: 18px auto 8px;
+  width: 110px; height: 110px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  position: relative;
+  overflow: hidden;
+}
+.tcard__visual img,
+.tcard__visual svg {
+  width: 82%; height: 82%; object-fit: contain;
+}
+.tcard__title { text-align: center; font-family: var(--font-jp); font-size: 10px; letter-spacing: 0; color: var(--ink-mute); margin: 6px 0 2px; font-weight: 600; line-height: 1.4; }
+.tcard__name  { text-align: center; font-family: var(--font-jp); font-weight: 900; font-size: 17px; letter-spacing: 0.02em; color: var(--ink); }

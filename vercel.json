@@ -2,14 +2,14 @@
   "version": 2,
   "builds": [
     {
-      "src": "prototype/exercise-v2/**",
+      "src": "fittness_type-main/**",
       "use": "@vercel/static"
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "/prototype/exercise-v2/$1"
+      "dest": "/fittness_type-main/$1"
     }
   ]
 }
