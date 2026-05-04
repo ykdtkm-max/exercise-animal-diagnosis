@@ -764,6 +764,7 @@
       done = true;
       el.typeModalSheet.style.willChange = '';
       el.typeModal.hidden = true;
+      el.typeModalScroll.scrollTop = 0;
       unlockPageScroll();
       setHash('/types');
     };
@@ -777,6 +778,11 @@
     el.typeModalBody.innerHTML = buildTypeDetailHtml(t, code);
     el.typeModalScroll.scrollTop = 0;
     openSheet();
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        el.typeModalScroll.scrollTop = 0;
+      });
+    });
   }
 
   // タイプコード（SFMC等）を動物名に置換
@@ -800,7 +806,9 @@
           '</div>' +
         '</div>' +
         '<div class="compat-card__body">' +
-          '<div class="compat-card__name">' + escapeHtml(c.name) + '</div>' +
+          '<div class="compat-card__name">' + escapeHtml(c.name) +
+            '<span class="compat-card__code">' + escapeHtml(c.code || '') + '</span>' +
+          '</div>' +
           '<div class="compat-card__msg">' + escapeHtml(replaceTypeCodes(c.reason)) + '</div>' +
         '</div>' +
       '</div>'
@@ -1497,14 +1505,32 @@
     GPVD: "「チーム全員での限界突破」に無上の喜びを感じます。高い目標に対し、妥協のないプロセスを仲間と共に熱く共有できる環境を求めます。単なる結果だけでなく、苦しい過程を全員で乗り越えるエモーショナルな体験を重視し、互いに厳しく求め合う強烈なスタイルが最適です。"
   };
 
-  function buildMotionFitChart(code) {
-    var fit = MOTION_FIT[code];
-    if (!fit) return '';
+  /**
+   * motion-fit チャートを描画。
+   * @param {string} code - タイプコード（アイコン表示用）
+   * @param {{structure:number, intensity:number}} [userSums] - ユーザーの軸スコア合計
+   *   （-24〜+24）。指定された場合は MOTION_FIT[code] の代わりに動的位置を計算する。
+   *   - x 軸: structure → +(P) なら左=計画、-(F) なら右=気分
+   *   - y 軸: intensity → +(D) なら上=高める、-(C) なら下=整える
+   */
+  function buildMotionFitChart(code, userSums) {
     var ch = CHARS()[code];
+    if (!ch) return '';
     var tint = safeCssColor(ch && ch.tint, '#FFE9C2');
-    // スコア (-2〜+2) を 20-80% にクランプしてアイコンがチャート端に届かないようにする
-    var leftPct = Math.round(20 + (fit.plan + 2) / 4 * 60);
-    var topPct  = Math.round(20 + (2 - fit.goal) / 4 * 60);
+    var leftPct, topPct;
+    if (userSums &&
+        typeof userSums.structure === 'number' &&
+        typeof userSums.intensity === 'number') {
+      // ユーザー回答ベースの動的位置（軸合計 ±24 を中央 ±30% にマッピング → 20-80% にクランプ）
+      var clamp = function (v, mn, mx) { return Math.max(mn, Math.min(mx, v)); };
+      leftPct = Math.round(clamp(50 - (userSums.structure / 24) * 30, 20, 80));
+      topPct  = Math.round(clamp(50 - (userSums.intensity / 24) * 30, 20, 80));
+    } else {
+      var fit = MOTION_FIT[code];
+      if (!fit) return '';
+      leftPct = Math.round(20 + (fit.plan + 2) / 4 * 60);
+      topPct  = Math.round(20 + (2 - fit.goal) / 4 * 60);
+    }
     // クランプ後の座標で吹き出し方向を判定
     var dir = 'up';
     if      (topPct  < 40) dir = 'down';
@@ -1516,11 +1542,11 @@
       '<div class="motion-fit">' +
         '<div class="motion-fit__wrap">' +
           '<span class="motion-fit__label motion-fit__label--col mf-top">' +
-            '<span class="motion-fit__label-text">成果重視</span>' +
+            '<span class="motion-fit__label-text">高める</span>' +
             '<span class="motion-fit__label-arr" aria-hidden="true">▲</span>' +
           '</span>' +
           '<div class="motion-fit__mid">' +
-            '<span class="motion-fit__label mf-left">計画的 ◀</span>' +
+            '<span class="motion-fit__label mf-left">計画 ◀</span>' +
             '<div class="motion-fit__chart">' +
               '<div class="motion-fit__axis-h"></div>' +
               '<div class="motion-fit__axis-v"></div>' +
@@ -1531,11 +1557,11 @@
                 '</div>' +
               '</div>' +
             '</div>' +
-            '<span class="motion-fit__label mf-right">▶ 突発的</span>' +
+            '<span class="motion-fit__label mf-right">▶ 気分</span>' +
           '</div>' +
           '<span class="motion-fit__label motion-fit__label--col mf-bottom">' +
             '<span class="motion-fit__label-arr" aria-hidden="true">▼</span>' +
-            '<span class="motion-fit__label-text">プロセス重視</span>' +
+            '<span class="motion-fit__label-text">整える</span>' +
           '</span>' +
         '</div>' +
         (MOTION_STYLE_TEXTS[code] ? '<div class="motion-fit__desc"><p>' + escapeHtml(MOTION_STYLE_TEXTS[code]) + '</p></div>' : '') +
@@ -2069,7 +2095,7 @@
   }
 
   // ── 結果セクション全体 ────────────────────────────────────────────────────────
-  function buildTypeSections(t, axisHtml) {
+  function buildTypeSections(t, axisHtml, userSums) {
     function sec(num, label, body) {
       return '<div class="sec">' +
         '<div class="sec__head">' +
@@ -2102,7 +2128,7 @@
 
     // 運動チャートと解説を一つのカードにまとめる
     var motionBody =
-      buildMotionFitChart(t.code) +
+      buildMotionFitChart(t.code, userSums) +
       '<div class="motion-plan-stack">' +
         buildMotionPlanBlock('motion-suit-label--good', '向いている運動', t.suit_title, t.suit_text, 'good', 0, t.suit_plans) +
         buildMotionPlanBlock('motion-suit-label--care', '向いていない運動', t.unsuited_title, t.unsuited_text, 'care', 1, t.unsuited_plans) +
@@ -2110,7 +2136,7 @@
 
     return (
       sec(1, '4軸プロフィール', axisHtml) +
-      sec(2, 'あなたのタイプ', textCard(t.concept_title, t.concept)) +
+      sec(2, 'タイプ解説', textCard(t.concept_title, t.concept)) +
       sec(3, '運動スタイル', motionBody) +
       sec(4, '続けるコツ',         textCard(t.continuation_title, t.continuation_text)) +
       compatSection +
@@ -2730,7 +2756,7 @@
         '<h2 class="modal-type-name">' + escapeHtml(t.type_name) + '</h2>' +
         '<p class="modal-type-tag">' + escapeHtml((t.catchphrases && t.catchphrases[0]) || t.tagline) + '</p>' +
       '</div>' +
-      secText(1, 'あなたのタイプ', t.concept_title,      t.concept) +
+      secText(1, 'タイプ解説', t.concept_title,      t.concept) +
       '<div class="sec">' +
         '<div class="sec__head">' +
           '<span class="num">02</span>' +
@@ -2873,7 +2899,7 @@
     // セクション
     var axisHtml = opts.skipAxisBars ? buildAxisBarsSamplePlaceholderHtml() : buildAxisBarsHtml(sums);
 
-    el.resultSections.innerHTML = buildTypeSections(t, axisHtml);
+    el.resultSections.innerHTML = buildTypeSections(t, axisHtml, sums);
 
     bindMotionPlanStripLoops(el.resultSections);
 
