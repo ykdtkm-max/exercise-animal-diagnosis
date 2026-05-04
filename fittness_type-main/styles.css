@@ -1212,25 +1212,22 @@ body.sc-intro-phase #screenResult .result-actions {
     ),
     #ffeec9;
 }
-/* #resultStrip と同系のホバー挙動（台形シャドウ・brightness） */
+/* 結果のシークレクト相性: ホバーは浮きのみ（色・brightness は変えない）。影はゴールド調の立体 */
 #screenResult #secretCompatibility.secret-compat--button {
   cursor: pointer;
   transition:
     transform 0.15s var(--ease-spring),
-    box-shadow 0.15s ease,
-    filter 0.15s ease;
+    box-shadow 0.15s ease;
   box-shadow:
-    0 6px 0 0 rgba(0, 0, 0, 0.38),
-    0 14px 28px rgba(43, 37, 53, 0.32),
+    0 4px 0 0 rgba(168, 104, 0, 0.13),
+    0 12px 22px rgba(168, 104, 0, 0.09),
     inset 0 1px 0 rgba(255, 255, 255, 0.82);
 }
 #screenResult #secretCompatibility.secret-compat--button:hover {
   transform: translateY(-2px);
-  filter: brightness(1.06);
   box-shadow:
-    0 8px 0 0 rgba(0, 0, 0, 0.42),
-    0 18px 36px rgba(43, 37, 53, 0.4),
-    0 0 0 1px rgba(255, 210, 63, 0.22),
+    0 6px 0 0 rgba(168, 104, 0, 0.18),
+    0 16px 28px rgba(168, 104, 0, 0.14),
     inset 0 1px 0 rgba(255, 255, 255, 0.86);
 }
 #screenResult #secretCompatibility.secret-compat--button:hover .secret-compat__tap-hint {
@@ -1238,11 +1235,10 @@ body.sc-intro-phase #screenResult .result-actions {
 }
 #screenResult #secretCompatibility.secret-compat--button:active {
   transform: translateY(1px);
-  filter: brightness(0.98);
   box-shadow:
-    0 2px 0 0 rgba(0, 0, 0, 0.36),
-    0 8px 20px rgba(43, 37, 53, 0.26),
-    inset 0 1px 0 rgba(255, 255, 255, 0.78);
+    0 2px 0 0 rgba(168, 104, 0, 0.14),
+    0 10px 20px rgba(168, 104, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 #screenResult #secretCompatibility.secret-compat--button:focus-visible {
   outline: 2px solid var(--yellow);
