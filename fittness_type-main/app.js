@@ -660,8 +660,8 @@
       var img  = c ? (isTypeUnlocked(code) ? charImgFullHtml(code) : charImgHtml(code)) : '';
 
       btn.innerHTML =
-        '<span class="tcard__code">' + escapeHtml(code) + '</span>' +
         '<div class="tcard__visual" style="background:' + tint + '">' + img + '</div>' +
+        '<div class="tcard__code">' + escapeHtml(code) + '</div>' +
         '<div class="tcard__name">' + escapeHtml(t.type_name) + '</div>';
 
       btn.addEventListener('click', function () {
@@ -2466,7 +2466,7 @@
     var linesUsed = [];
     while (fsCatch >= 14) {
       ctx.font = '700 ' + fsCatch + 'px ' + FONT_JP_DRAW;
-      catchLines = wrapTextLines(ctx, t.tagline || '', maxTextW - 40);
+      catchLines = wrapTextLines(ctx, (t.catchphrases && t.catchphrases[0]) || t.tagline || '', maxTextW - 40);
       linesUsed = catchLines.slice(0, 3);
       var estH = 18 + linesUsed.length * (fsCatch + 8);
       if (ty + estH <= bottomReserve) break;
@@ -2728,7 +2728,7 @@
         '<div class="modal-type-code">' + escapeHtml(code || t.code) + '</div>' +
         '<div class="modal-type-char">' + charImgFullHtml(code || t.code) + '</div>' +
         '<h2 class="modal-type-name">' + escapeHtml(t.type_name) + '</h2>' +
-        '<p class="modal-type-tag">' + escapeHtml(t.tagline) + '</p>' +
+        '<p class="modal-type-tag">' + escapeHtml((t.catchphrases && t.catchphrases[0]) || t.tagline) + '</p>' +
       '</div>' +
       secText(1, 'あなたのタイプ', t.concept_title,      t.concept) +
       '<div class="sec">' +
@@ -2870,7 +2870,7 @@
     if (heroTitleEl)      heroTitleEl.textContent = t.concept_title || '';
     if (heroNameEl)       heroNameEl.textContent  = t.type_name;
     if (heroCodeEl)       heroCodeEl.textContent  = code;
-    if (heroCatchEl)      heroCatchEl.textContent = t.tagline;
+    if (heroCatchEl)      heroCatchEl.textContent = (t.catchphrases && t.catchphrases[0]) || t.tagline;
 
     // セクション
     var axisHtml = opts.skipAxisBars ? buildAxisBarsSamplePlaceholderHtml() : buildAxisBarsHtml(sums);

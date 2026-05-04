@@ -12,9 +12,9 @@
   var STATIC_SCRIPTS = [
     'types-data.js?v=exercise-v46',
     'data.js?v=exercise-v9',
-    'secret-compat-detail-data.js?v=exercise-scd16',
+    'secret-compat-detail-data.js?v=exercise-scd17',
   ];
-  var APP_SCRIPT = 'app.js?v=exercise-v251';
+  var APP_SCRIPT = 'app.js?v=exercise-v253';
   var OPTION_LABEL_FALLBACK = [
     'とても賛成',
     '賛成',
