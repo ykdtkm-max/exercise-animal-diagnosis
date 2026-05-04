@@ -1198,7 +1198,7 @@ body.sc-intro-phase #screenResult .result-actions {
   position: relative;
   margin-top: 14px;
   padding: 20px 18px;
-  height: 165px;
+  min-height: 165px;
   border-radius: var(--r-lg);
   display: flex;
   flex-direction: column;

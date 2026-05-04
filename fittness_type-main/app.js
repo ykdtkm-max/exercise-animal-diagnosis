@@ -1447,7 +1447,7 @@
       '<div class="secret-compat secret-compat--button" id="secretCompatibility" data-secret-compat-root data-my-code="' + escapeAttr(myCode) + '" role="button" tabindex="0" aria-label="他のアニマルとの相性を見る">' +
         '<div class="secret-compat__badge">SECRET UNLOCKED</div>' +
         '<h3 class="secret-compat__title">他のアニマルとの相性を見る</h3>' +
-        '<p class="secret-compat__text">ボス限定機能。あなたと他の仲間たちの相性を詳しく見ることができます</p>' +
+        '<p class="secret-compat__text">ボスになった方限定！！<br aria-hidden="true" />あなたと他の仲間たちの相性をチェックできます。</p>' +
         '<span class="secret-compat__tap-hint" aria-hidden="true">VIEW ALL&thinsp;→</span>' +
         '<span class="sc-sparkle sc-sparkle--1" aria-hidden="true">\u2726</span>' +
         '<span class="sc-sparkle sc-sparkle--2" aria-hidden="true">\u2727</span>' +
