@@ -206,7 +206,10 @@ body.app-booting {
 .strip__label-left { display: flex; flex-direction: column; gap: 4px; }
 .strip__label b { font-family: var(--font-en); font-weight: 800; font-size: 18px; color: var(--yellow); line-height: 1; }
 .strip__label small { font-size: 11px; color: rgba(255,255,255,.6); letter-spacing: 0.18em; font-weight: 700; line-height: 1; }
-#resultStrip .strip__label { margin-bottom: 22px; }
+#welcomeStrip .strip__label,
+#resultStrip .strip__label {
+  margin-bottom: 22px;
+}
 .strip__cta {
   margin-left: auto;
   font-family: var(--font-en);
@@ -218,7 +221,10 @@ body.app-booting {
   white-space: nowrap;
   transition: opacity 0.15s ease;
 }
-#resultStrip:hover .strip__cta { opacity: 1; }
+#welcomeStrip:hover .strip__cta,
+#resultStrip:hover .strip__cta {
+  opacity: 1;
+}
 .strip__track { display: flex; gap: 12px; width: max-content; animation: slide 38s linear infinite; padding: 0 12px; will-change: transform; }
 @keyframes slide { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 .thumb { width: 70px; height: 70px; border-radius: 50%; display: grid; place-items: center; flex-shrink: 0; overflow: hidden; }
