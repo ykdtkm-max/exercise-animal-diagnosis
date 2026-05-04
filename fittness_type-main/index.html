@@ -5,11 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://www.clarity.ms https://*.clarity.ms; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.clarity.ms https://c.bing.com; connect-src 'self' https://*.supabase.co https://*.clarity.ms https://c.bing.com; object-src 'none'; base-uri 'self'; form-action 'none'"
+      content="default-src 'self'; script-src 'self' https://*.clarity.ms; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.clarity.ms https://c.bing.com; connect-src 'self' https://*.supabase.co https://*.clarity.ms https://c.bing.com; object-src 'none'; base-uri 'self'; form-action 'none'"
     />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     <title>運動アニマル図鑑 — あなたの運動タイプを診断しよう！</title>
-    <script src="clarity-init.js?v=clarity-1"></script>
+    <script src="clarity-init.js?v=clarity-2"></script>
     <link rel="icon" type="image/png" href="favicon.png" />
     <!-- OGP: デプロイ後 SITE_URL を実際の本番 URL に差し替えること -->
     <meta property="og:title" content="運動アニマル図鑑 — あなたの運動タイプを診断しよう！" />
@@ -25,7 +25,7 @@
     <meta name="twitter:image" content="https://SITE_URL/OGP.png" />
     <link rel="stylesheet" href="tokens.css?v=exercise-t2" />
     <link rel="stylesheet" href="components.css?v=exercise-c13" />
-    <link rel="stylesheet" href="styles.css?v=exercise-v266" />
+    <link rel="stylesheet" href="styles.css?v=exercise-v267" />
   </head>
   <body class="app-booting">
     <!-- ═══════════════ Welcome ═══════════════ -->
@@ -93,7 +93,8 @@
     </section>
 
     <!-- ═══════════════ Types List ═══════════════ -->
-    <section class="screen" id="screenTypes" data-screen="types">
+    <!-- data-clarity-unmask: Clarity リプレイで 16 アニマルのコード・名前等を可視化（個人情報なし） -->
+    <section class="screen" id="screenTypes" data-screen="types" data-clarity-unmask="true">
       <div class="stage types-stage">
         <header class="types-nav">
           <button class="iconbtn" id="typesBack" aria-label="戻る">←</button>
@@ -161,7 +162,8 @@
     </section>
 
     <!-- ═══════════════ Result ═══════════════ -->
-    <section class="screen" id="screenResult" data-screen="result">
+    <!-- data-clarity-unmask: Clarity リプレイで結果ヒーロー・スコア・タイプ説明を可視化（個人情報なし） -->
+    <section class="screen" id="screenResult" data-screen="result" data-clarity-unmask="true">
       <div class="stage result-stage">
         <header class="nav-bar">
           <span style="width:44px"></span>
@@ -239,7 +241,8 @@
     </section>
 
     <!-- ═══════════════ Secret Compatibility ═══════════════ -->
-    <section class="screen" id="screenSecretCompat" data-screen="secretCompat">
+    <!-- data-clarity-unmask: 相性ページの本文を Clarity リプレイで可視化（個人情報なし） -->
+    <section class="screen" id="screenSecretCompat" data-screen="secretCompat" data-clarity-unmask="true">
       <div class="stage secret-compat-stage">
         <header class="types-nav">
           <button class="iconbtn" id="secretCompatBack" aria-label="診断結果に戻る">←</button>
@@ -250,7 +253,8 @@
     </section>
 
     <!-- ═══════════════ Type Detail (Bottom Sheet) ═══════════════ -->
-    <div id="typeModal" class="sheet-root" hidden>
+    <!-- data-clarity-unmask: タイプ詳細モーダル本文（タイプ名・口癖・特徴）を Clarity リプレイで可視化 -->
+    <div id="typeModal" class="sheet-root" data-clarity-unmask="true" hidden>
       <div class="sheet-backdrop" id="typeModalBackdrop"></div>
       <div
         class="bottom-sheet"
@@ -323,7 +327,8 @@
       </div>
     </div>
 
-    <div class="modal-bg" id="instagramShareDialog" hidden>
+    <!-- data-clarity-unmask: シェアダイアログの手順テキストを Clarity リプレイで可視化 -->
+    <div class="modal-bg" id="instagramShareDialog" data-clarity-unmask="true" hidden>
       <div class="modal modal--share">
         <button
           type="button"

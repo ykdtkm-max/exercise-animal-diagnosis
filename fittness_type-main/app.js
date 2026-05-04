@@ -390,6 +390,16 @@
       if (typeof window.clarity === 'function') window.clarity('upgrade', String(reason));
     } catch (_e) {}
   }
+  // SPA ハッシュルート遷移を Clarity に「別ページ」として通知するヘルパー。
+  // 実体は clarity-init.js が window.identifyClarityRoute として公開している。
+  // ロード前や Clarity 拡張がブロックされている環境ではサイレントに no-op。
+  function identifyRoute(pageId) {
+    try {
+      if (typeof window.identifyClarityRoute === 'function') {
+        window.identifyClarityRoute(String(pageId || 'unknown'));
+      }
+    } catch (_e) {}
+  }
 
   function getStorageArea(kind) {
     return kind === 'local' ? window.localStorage : window.sessionStorage;
@@ -3274,12 +3284,14 @@
     if (r.view === 'welcome')    {
       trackTag('mode', 'welcome');
       track('view_welcome');
+      identifyRoute('welcome');
       showScreen('welcome');
       return;
     }
     if (r.view === 'types')      {
       trackTag('mode', 'types');
       track('view_types');
+      identifyRoute('types');
       updateTypesGoTopLabel();
       showScreen('types', { preserveScroll: state.screen === 'types' });
       return;
@@ -3289,8 +3301,10 @@
       if (r.code) {
         trackTag('type_detail_code', r.code);
         track('view_type_detail_' + r.code);
+        identifyRoute('type-detail-' + r.code);
       } else {
         track('view_type_detail');
+        identifyRoute('type-detail');
       }
       updateTypesGoTopLabel();
       showScreen('types', { preserveScroll: state.screen === 'types' });
@@ -3302,8 +3316,10 @@
         trackTag('mode', 'secret_compat');
         if (r.code) {
           track('view_secret_compat_' + r.code);
+          identifyRoute('secret-compat-' + r.code);
         } else {
           track('view_secret_compat');
+          identifyRoute('secret-compat');
         }
         trackUpgradeSession('secret_compat');
         showScreen('secretCompat');
@@ -3334,6 +3350,7 @@
       }
       trackTag('mode', 'quiz');
       track('view_quiz');
+      identifyRoute('quiz');
       showScreen('quiz');
       updateQuizUI();
       return;
@@ -3364,6 +3381,7 @@
         trackTag('mode', 'result');
         trackTag('result_type', r.code);
         track('view_result_' + r.code);
+        identifyRoute('result-' + r.code);
         trackUpgradeSession('result');
         showScreen('result');
         if (fromSecretCompat) scrollResultToSecretCompatibility();
@@ -3372,6 +3390,7 @@
         trackTag('mode', 'result');
         trackTag('result_type', state.lastCode);
         track('view_result_' + state.lastCode);
+        identifyRoute('result-' + state.lastCode);
         trackUpgradeSession('result');
         showScreen('result');
         if (fromSecretCompat) scrollResultToSecretCompatibility();

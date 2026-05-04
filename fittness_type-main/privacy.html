@@ -5,16 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://www.clarity.ms https://*.clarity.ms; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.clarity.ms https://c.bing.com; connect-src 'self' https://*.supabase.co https://*.clarity.ms https://c.bing.com; object-src 'none'; base-uri 'self'; form-action 'none'"
+      content="default-src 'self'; script-src 'self' https://*.clarity.ms; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.clarity.ms https://c.bing.com; connect-src 'self' https://*.supabase.co https://*.clarity.ms https://c.bing.com; object-src 'none'; base-uri 'self'; form-action 'none'"
     />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     <meta name="robots" content="index,follow" />
     <title>プライバシーポリシー — 運動アニマル図鑑</title>
-    <script src="clarity-init.js?v=clarity-1"></script>
+    <script src="clarity-init.js?v=clarity-2"></script>
     <link rel="icon" type="image/png" href="favicon.png" />
     <link rel="stylesheet" href="tokens.css?v=exercise-t2" />
     <link rel="stylesheet" href="components.css?v=exercise-c13" />
-    <link rel="stylesheet" href="styles.css?v=exercise-v266" />
+    <link rel="stylesheet" href="styles.css?v=exercise-v267" />
     <style>
       .legal-page {
         max-width: 720px;
@@ -108,7 +108,8 @@
     </style>
   </head>
   <body>
-    <main class="legal-page">
+    <!-- data-clarity-unmask: 法令公表ページ本文を Clarity リプレイで可視化（公開文書のため安全） -->
+    <main class="legal-page" data-clarity-unmask="true">
       <nav class="legal-page__nav" aria-label="パンくずリスト">
         <a href="./">運動アニマル図鑑</a>
         <span>›</span>
