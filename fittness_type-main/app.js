@@ -2861,13 +2861,11 @@
     }
 
     var heroCharEl  = document.getElementById('heroChar');
-    var heroTitleEl = document.getElementById('heroTitle');
     var heroNameEl  = document.getElementById('heroName');
     var heroCodeEl  = document.getElementById('heroCode');
     var heroCatchEl = document.getElementById('heroCatch');
 
     if (heroCharEl  && c) heroCharEl.innerHTML    = charImgFullHtml(code);
-    if (heroTitleEl)      heroTitleEl.textContent = t.concept_title || '';
     if (heroNameEl)       heroNameEl.textContent  = t.type_name;
     if (heroCodeEl)       heroCodeEl.textContent  = code;
     if (heroCatchEl)      heroCatchEl.textContent = (t.catchphrases && t.catchphrases[0]) || t.tagline;
