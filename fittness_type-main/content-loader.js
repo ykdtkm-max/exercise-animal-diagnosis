@@ -10,7 +10,7 @@
   'use strict';
 
   var STATIC_SCRIPTS = [
-    'types-data.js?v=exercise-v45',
+    'types-data.js?v=exercise-v46',
     'data.js?v=exercise-v9',
     'secret-compat-detail-data.js?v=exercise-scd16',
   ];
