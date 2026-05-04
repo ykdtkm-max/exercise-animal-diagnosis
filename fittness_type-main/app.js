@@ -340,6 +340,8 @@
   /** 旧実装の互換キー。読み込み時に新形式へ移行し、リセット時も削除する。 */
   var STORAGE_KEY_SHARE_CHANNELS_LEGACY = 'exerciseV2_share_channels';
   var STORAGE_KEY_SCROLL_POSITIONS = 'exerciseV2_scroll_positions';
+  /** SECRET UNLOCKED モーダル＆ボタン強調アニメは初回のみ。一度見たユーザーは再表示しない。 */
+  var STORAGE_KEY_SECRET_UNLOCKED_SEEN = 'exerciseV2_secret_unlocked_seen';
 
   var APP_STORAGE_KEYS = [
     STORAGE_KEY_SAVED_DIAG,
@@ -349,6 +351,7 @@
     STORAGE_KEY_SHARE_PROGRESS,
     STORAGE_KEY_SHARE_CHANNELS_LEGACY,
     STORAGE_KEY_SCROLL_POSITIONS,
+    STORAGE_KEY_SECRET_UNLOCKED_SEEN,
   ];
 
   function getStorageArea(kind) {
@@ -965,6 +968,17 @@
 
   function isSecretCompatibilityUnlocked() {
     return getShareCompletionCount(loadShareProgress()) >= 3;
+  }
+
+  /**
+   * SECRET UNLOCKED の強調演出（モーダル＋スポットライト＋ボタン entrance/glow）は
+   * 1ユーザー初回のみ表示する。`true` を返すと、その後は静かにカードを設置するだけ。
+   */
+  function hasSeenSecretUnlocked() {
+    return storageGet('local', STORAGE_KEY_SECRET_UNLOCKED_SEEN) === '1';
+  }
+  function markSecretUnlockedSeen() {
+    storageSet('local', STORAGE_KEY_SECRET_UNLOCKED_SEEN, '1');
   }
 
   function getTraitForCodeAt(code, idx) {
@@ -2156,6 +2170,9 @@
   var INK_SOFT_HEX = '#5C5466';
   var INK_MUTE_HEX = '#948CA0';
   var PAPER_MUTE_HEX = '#F2EFE6';
+  var BRAND_RED_HEX = '#FF4D5A';   // tokens.css の --red と一致（"運動"の文字色）
+  var BRAND_PRIMARY_TEXT = '運動';
+  var BRAND_REST_TEXT = 'アニマル図鑑';
 
   function canvasRoundRect(ctx, x, y, w, h, r) {
     var rr = Math.min(r, w / 2, h / 2);
@@ -2481,9 +2498,23 @@
     });
     ty += Math.min(nameLines.length, 3) * nameLh + 8;
 
-    ctx.font = '700 22px ' + FONT_EN_DRAW;
-    ctx.fillStyle = INK_SOFT_HEX;
+    // タイプコード（アルファベット）— サイトの .hero__code-main と揃え、太め＆広めの
+    // letterSpacing で「英字記号」感を強める。letterSpacing 未対応ブラウザは無視される。
+    var lsCodeSave = '';
+    try {
+      if ('letterSpacing' in ctx && typeof ctx.letterSpacing !== 'undefined') {
+        lsCodeSave = ctx.letterSpacing;
+        ctx.letterSpacing = '0.22em';
+      }
+    } catch (_eLsCode) {}
+    ctx.font = '800 22px ' + FONT_EN_DRAW;
+    ctx.fillStyle = INK_HEX;
+    ctx.globalAlpha = 0.85;
     ctx.fillText(code, x + w / 2, ty);
+    ctx.globalAlpha = 1;
+    try {
+      if ('letterSpacing' in ctx) ctx.letterSpacing = lsCodeSave;
+    } catch (_eLsCode2) {}
     ty += 32;
 
     var bottomReserve = y + boxH - 24;
@@ -2532,6 +2563,54 @@
     }).format(d || new Date());
   }
 
+  /**
+   * シェア画像の最上部に、サイトヘッダーと同じスタイルで「運動アニマル図鑑」ブランドロゴを描画。
+   *   [favicon icon] [運動 (赤)][アニマル図鑑 (ink)]
+   * @param {CanvasRenderingContext2D} ctx
+   * @param {number} centerX  中央 X 座標
+   * @param {number} baselineTopY  ロゴ群の Y 上端
+   * @param {HTMLImageElement|null} brandImg favicon.png（同一オリジンで読み込んだ Image）
+   * @returns {number} ロゴ群の Y 下端（呼び出し側がレイアウト計算に利用）
+   */
+  function drawStoryBrandLogo(ctx, centerX, baselineTopY, brandImg) {
+    var iconSize = 76;   // PC 36px → 1080px 幅で約 2.1× スケール
+    var fontSize = 56;   // PC 20px → 1080px 幅で約 2.8× スケール
+    var gap = 14;        // アイコンと文字の間隔（PC 7px の約 2× ）
+
+    ctx.save();
+    ctx.textBaseline = 'middle';
+    ctx.font = '900 ' + fontSize + 'px ' + FONT_JP_DRAW;
+
+    // 文字幅を測定して全体幅を計算
+    var primaryW = ctx.measureText(BRAND_PRIMARY_TEXT).width;
+    var restW    = ctx.measureText(BRAND_REST_TEXT).width;
+    var hasIcon  = !!(brandImg && brandImg.complete && brandImg.naturalWidth > 0);
+    var totalW   = (hasIcon ? iconSize + gap : 0) + primaryW + restW;
+
+    var startX = centerX - totalW / 2;
+    var midY   = baselineTopY + iconSize / 2;
+
+    if (hasIcon) {
+      ctx.drawImage(brandImg, startX, baselineTopY, iconSize, iconSize);
+      startX += iconSize + gap;
+    }
+
+    // 「運動」: ブランド赤
+    ctx.textAlign = 'left';
+    ctx.fillStyle = BRAND_RED_HEX;
+    ctx.fillText(BRAND_PRIMARY_TEXT, startX, midY + 2);
+    startX += primaryW;
+
+    // 「アニマル図鑑」: ink
+    ctx.fillStyle = INK_HEX;
+    ctx.fillText(BRAND_REST_TEXT, startX, midY + 2);
+
+    ctx.restore();
+    ctx.textBaseline = 'alphabetic';
+    ctx.textAlign = 'left';
+    return baselineTopY + iconSize;
+  }
+
   function buildResultPngFilename(code) {
     var d = new Date();
     var y = d.getFullYear();
@@ -2539,7 +2618,7 @@
     var day = d.getDate();
     var ms = String(m).length >= 2 ? String(m) : '0' + m;
     var ds = String(day).length >= 2 ? String(day) : '0' + day;
-    var filename = '運動アニマル診断_' + (code || 'RESULT') + '_' + y + '-' + ms + '-' + ds + '.png';
+    var filename = '運動アニマル図鑑_' + (code || 'RESULT') + '_' + y + '-' + ms + '-' + ds + '.png';
     return typeof filename.normalize === 'function' ? filename.normalize('NFC') : filename;
   }
 
@@ -2602,9 +2681,14 @@
 
       var src = c.imgFull || c.img;
 
-      loadImageSameOrigin(src)
-        .catch(function () { return null; })
-        .then(function (charImg) {
+      // キャラ画像とブランドアイコン（favicon）を並列ロード。どちらも失敗時は null フォールバック。
+      Promise.all([
+        loadImageSameOrigin(src).catch(function () { return null; }),
+        loadImageSameOrigin('favicon.png').catch(function () { return null; }),
+      ])
+        .then(function (results) {
+          var charImg = results[0];
+          var brandImg = results[1];
           var canvas = document.createElement('canvas');
           canvas.width = STORY_W;
           canvas.height = STORY_H;
@@ -2643,21 +2727,33 @@
           var GAP_AFTER_HERO = Math.round(14 * uiScale);
           GAP_AFTER_HERO = Math.max(30, Math.min(38, GAP_AFTER_HERO));
 
-          var RESERVED_TITLE_BASELINE = Math.round(STORY_H * (42 / 1350)); // 上側のゆとり
-          var TITLE_TO_HERO_GAP = Math.round(STORY_W * (44 / 1080)); // 「運動アニマル」直下〜ヒーロー頭
-          TITLE_TO_HERO_GAP = Math.max(30, Math.min(42, TITLE_TO_HERO_GAP));
+          // ─ ブランドロゴ部（サイトヘッダー流儀）
+          var BRAND_LOGO_TOP_PAD = 56;       // canvas 上端からのゆとり
+          var BRAND_LOGO_HEIGHT = 76;        // drawStoryBrandLogo 内の iconSize と一致
+          var BRAND_TO_SUBTITLE_GAP = 18;
+          var SUBTITLE_FONT_SIZE = 22;
+          var SUBTITLE_HEIGHT = SUBTITLE_FONT_SIZE + 4;
+          var BRAND_BOTTOM_TO_HERO_GAP = 36; // ロゴブロック下端〜ヒーロー頭
 
-          var heroY = RESERVED_TITLE_BASELINE + 34 + TITLE_TO_HERO_GAP;
+          var brandBlockHeight = BRAND_LOGO_HEIGHT + BRAND_TO_SUBTITLE_GAP + SUBTITLE_HEIGHT;
+          var heroY = BRAND_LOGO_TOP_PAD + brandBlockHeight + BRAND_BOTTOM_TO_HERO_GAP;
           var targetHeroH = 520;
           var minFootGap = BETWEEN_AXES_AND_DATE + DATE_TOP_PAD_ABOVE_AXES_PX;
           var overflowY = heroY + targetHeroH + GAP_AFTER_HERO + axesSpan + minFootGap - footBaselineY;
           var heroH = Math.max(486, targetHeroH - Math.max(0, overflowY));
           var axesOriginY = heroY + heroH + GAP_AFTER_HERO;
 
-          ctx.fillStyle = INK_HEX;
-          ctx.font = '800 30px ' + FONT_EN_DRAW;
+          // 1) ブランドロゴ「[favicon] 運動アニマル図鑑」を中央に描画
+          var brandBottom = drawStoryBrandLogo(ctx, STORY_W / 2, BRAND_LOGO_TOP_PAD, brandImg || null);
+          // 2) ロゴ直下に小さく "あなたの運動タイプ診断結果" サブライン
+          ctx.fillStyle = INK_MUTE_HEX;
+          ctx.globalAlpha = 0.78;
+          ctx.font = '700 ' + SUBTITLE_FONT_SIZE + 'px ' + FONT_JP_DRAW;
           ctx.textAlign = 'center';
-          ctx.fillText('運動アニマル診断結果', STORY_W / 2, RESERVED_TITLE_BASELINE + 26);
+          ctx.textBaseline = 'top';
+          ctx.fillText('あなたの運動タイプ診断結果', STORY_W / 2, brandBottom + BRAND_TO_SUBTITLE_GAP);
+          ctx.globalAlpha = 1;
+          ctx.textBaseline = 'alphabetic';
 
           drawStoryHero(ctx, margin, heroY, innerW, heroH, code, t, c, charImg || null);
 
@@ -2899,6 +2995,9 @@
     // セクション
     var axisHtml = opts.skipAxisBars ? buildAxisBarsSamplePlaceholderHtml() : buildAxisBarsHtml(sums);
 
+    // 2回目以降のユーザーは SECRET UNLOCKED ボタンの sparkle/glow 等の強調アニメを抑制する
+    document.body.classList.toggle('secret-unlocked-seen', hasSeenSecretUnlocked());
+
     el.resultSections.innerHTML = buildTypeSections(t, axisHtml, sums);
 
     bindMotionPlanStripLoops(el.resultSections);
@@ -2973,9 +3072,20 @@
   }
 
   function refreshSecretCompatibilityUnlock() {
-    if (!el.resultSections || !state.lastCode || !TYPES()[state.lastCode]) return;
-    if (!isSecretCompatibilityUnlocked()) return;
-    if (document.getElementById('secretCompatibility')) return;
+    // どのケースで早期 return しても interactionBlocker が残らないよう、必ず unlock を呼ぶ。
+    // 既存ロックが無いケースでも unlockInteraction は no-op なので副作用は無い。
+    if (!el.resultSections || !state.lastCode || !TYPES()[state.lastCode]) {
+      unlockInteraction();
+      return;
+    }
+    if (!isSecretCompatibilityUnlocked()) {
+      unlockInteraction();
+      return;
+    }
+    if (document.getElementById('secretCompatibility')) {
+      unlockInteraction();
+      return;
+    }
 
     // variant 1・2 からここに来た場合もロック（variant=3 は celebration 開始時から locked 済み）
     lockInteraction();
@@ -2985,6 +3095,15 @@
     wrapper.innerHTML = buildSecretCompatibilityCtaHtml(state.lastCode);
     var newNode = wrapper.firstElementChild;
     if (!newNode) { unlockInteraction(); return; }
+
+    // 2回目以降のユーザーには強調演出（intro entrance / spotlight / 暗転）を一切付けず、
+    // 純粋にカードを resultSections に追加してすぐ操作可能にする。
+    if (hasSeenSecretUnlocked()) {
+      el.resultSections.appendChild(newNode);
+      unlockInteraction();
+      return;
+    }
+
     newNode.classList.add('secret-compat--intro');
     el.resultSections.appendChild(newNode);
 
@@ -3007,7 +3126,7 @@
       slowScrollTo(targetY, 1400);
     }, 80);
 
-    // 3100ms 後にスポットライト解除
+    // 3100ms 後にスポットライト解除（初回のみここに到達するので、ここで「見た」フラグを立てる）
     setTimeout(function () {
       var ol = document.getElementById('scIntroOverlay');
       if (ol && ol.parentNode) ol.parentNode.removeChild(ol);
@@ -3015,6 +3134,7 @@
       var card = document.getElementById('secretCompatibility');
       if (card) card.classList.remove('sc-intro-lifted');
       unlockInteraction();
+      markSecretUnlockedSeen();
     }, 3100);
   }
 
@@ -3660,16 +3780,39 @@
       '</div>';
     document.body.appendChild(bg);
 
+    var closed = false;
     function closeModal() {
+      if (closed) return;
+      closed = true;
       if (bg.parentNode) bg.parentNode.removeChild(bg);
-      // unlockInteraction はスポットライト終了時まで呼ばない
+      // refreshSecretCompatibilityUnlock 側で全早期 return ブランチが必ず unlockInteraction を
+      // 呼ぶよう改修済み。さらにスポットライトを未経由で抜ける極稀なケースのため、
+      // 次フレームで blocker が残っていれば強制解除する保険を追加。
       refreshSecretCompatibilityUnlock();
+      requestAnimationFrame(function () {
+        var blocker = document.getElementById('interactionBlocker');
+        var introOverlay = document.getElementById('scIntroOverlay');
+        if (blocker && !introOverlay && !document.body.classList.contains('sc-intro-phase')) {
+          unlockInteraction();
+        }
+      });
     }
     var confirmBtn = document.getElementById('secretUnlockedConfirm');
     if (confirmBtn) {
       confirmBtn.addEventListener('click', closeModal);
       confirmBtn.focus();
     }
+  }
+
+  /**
+   * 演出 variant の最終決定。recordShareDownloadSuccess は tier 3 を確定後も
+   * 再シェアで variant=3 を返し続けるため、2回目以降はここで variant=2 に降格し、
+   * SECRET UNLOCKED モーダル／スポットライト／ボス celebration を再発火させない。
+   */
+  function effectiveCelebrationVariant(rawVariant) {
+    var v = normalizeShareTier(rawVariant) || 1;
+    if (v === 3 && hasSeenSecretUnlocked()) return 2;
+    return v;
   }
 
   function showAnimalCelebration(variant) {
@@ -3863,11 +4006,12 @@
         if (saved === false) return;
         if (!shouldRecord) return;
         return copyShareUrlOnly().then(function () {
-          var variant = recordShareDownloadSuccess(currentShareChannel);
+          var rawVariant = recordShareDownloadSuccess(currentShareChannel);
+          var variant = effectiveCelebrationVariant(rawVariant);
           if (shouldClose) closeShareSaveDialog();
           showAnimalCelebration(variant);
-          if (normalizeShareTier(variant) !== 3) {
-            var celebDelay = normalizeShareTier(variant) === 2 ? 6300 : 5300;
+          if (variant !== 3) {
+            var celebDelay = variant === 2 ? 6300 : 5300;
             setTimeout(function() { refreshSecretCompatibilityUnlock(); }, celebDelay);
           }
         });
@@ -3882,11 +4026,12 @@
     var restore = setShareButtonBusy(btn, '約束中…');
     copyShareUrlOnly()
       .then(function () {
-        var variant = recordShareDownloadSuccess(currentShareChannel);
+        var rawVariant = recordShareDownloadSuccess(currentShareChannel);
+        var variant = effectiveCelebrationVariant(rawVariant);
         closeShareSaveDialog();
         showAnimalCelebration(variant);
-        if (normalizeShareTier(variant) !== 3) {
-          var celebDelay = normalizeShareTier(variant) === 2 ? 6300 : 5300;
+        if (variant !== 3) {
+          var celebDelay = variant === 2 ? 6300 : 5300;
           setTimeout(function() { refreshSecretCompatibilityUnlock(); }, celebDelay);
         }
       })

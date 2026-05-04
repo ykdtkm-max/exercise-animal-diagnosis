@@ -1216,6 +1216,10 @@ body.sc-intro-phase #screenResult .result-actions {
     scSparkleIn 0.4s ease-out 1.3s  forwards,
     twinkle     2.8s ease-in-out    1.7s infinite;
 }
+/* SECRET UNLOCKED 強調演出は 1ユーザー初回のみ。
+   2回目以降の結果ページではボタン entrance/glow/sparkle を一切ロードしない。 */
+body.secret-unlocked-seen .sc-sparkle { display: none; }
+body.secret-unlocked-seen .secret-compat--intro { animation: none; }
 .secret-compat {
   position: relative;
   margin-top: 14px;
