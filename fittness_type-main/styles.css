@@ -2135,3 +2135,41 @@ body.celebration-locked {
   color: var(--ink);
   font-weight: 500;
 }
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * Global site footer (legal links)
+ *  - 全画面共通の最下部に配置。各 .screen は固定高さなので
+ *    フッターは natural document flow の最後に表示される。
+ *  - 改正電気通信事業法 第27条の12（外部送信規律）の「公表」要件を
+ *    満たすためのプライバシーポリシーへの導線。
+ * ────────────────────────────────────────────────────────────────────────── */
+.site-footer {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 18px 16px calc(18px + env(safe-area-inset-bottom));
+  background: #faf8fc;
+  border-top: 1px solid #ece7f0;
+  font-size: 12px;
+  color: #6b6470;
+}
+.site-footer__copy {
+  font-size: 12px;
+  color: #6b6470;
+}
+.site-footer__nav {
+  display: inline-flex;
+  gap: 16px;
+}
+.site-footer__link {
+  color: #6b6470;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.site-footer__link:hover {
+  color: var(--ink, #2b2535);
+}
