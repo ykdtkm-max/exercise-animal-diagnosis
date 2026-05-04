@@ -315,9 +315,24 @@
     if (didHydrateFromStorage) return;
     didHydrateFromStorage = true;
     var o = loadPersistedSaved();
-    if (!o) return;
-    state.lastCode = o.code;
-    state.lastScores = o.sums;
+    if (o) {
+      state.lastCode = o.code;
+      state.lastScores = o.sums;
+      // Clarity: 過去に診断完了したリピーターを識別
+      trackTag('has_diagnosed', '1');
+      trackTag('result_type', o.code || '');
+    } else {
+      trackTag('has_diagnosed', '0');
+    }
+    // Clarity: SECRET UNLOCKED 既読フラグの初期同期
+    trackTag('secret_unlocked_seen', hasSeenSecretUnlocked() ? '1' : '0');
+    // Clarity: 既存のシェア進捗の初期同期
+    try {
+      var p = loadShareProgress();
+      trackTag('share_count', String(getShareCompletionCount(p)));
+    } catch (_e) {
+      trackTag('share_count', '0');
+    }
   }
 
   function persistTypesReturnParent() {
@@ -342,6 +357,8 @@
   var STORAGE_KEY_SCROLL_POSITIONS = 'exerciseV2_scroll_positions';
   /** SECRET UNLOCKED モーダル＆ボタン強調アニメは初回のみ。一度見たユーザーは再表示しない。 */
   var STORAGE_KEY_SECRET_UNLOCKED_SEEN = 'exerciseV2_secret_unlocked_seen';
+  /** Microsoft Clarity 用の匿名ビジターID（リピーター識別用、clarity-init.js で発行）。 */
+  var STORAGE_KEY_VISITOR_UID = 'exerciseV2_visitor_uid';
 
   var APP_STORAGE_KEYS = [
     STORAGE_KEY_SAVED_DIAG,
@@ -352,7 +369,27 @@
     STORAGE_KEY_SHARE_CHANNELS_LEGACY,
     STORAGE_KEY_SCROLL_POSITIONS,
     STORAGE_KEY_SECRET_UNLOCKED_SEEN,
+    STORAGE_KEY_VISITOR_UID,
   ];
+
+  // ── 解析（Microsoft Clarity）ヘルパー ───────────────────────────────────────
+  // window.clarity は clarity-init.js でロード前から queue stub 化されているため、
+  // ロード前後を問わず安全に呼び出せる。失敗時はサイレントスキップ（UX に影響させない）。
+  function track(name) {
+    try {
+      if (typeof window.clarity === 'function') window.clarity('event', String(name));
+    } catch (_e) {}
+  }
+  function trackTag(key, val) {
+    try {
+      if (typeof window.clarity === 'function') window.clarity('set', String(key), String(val));
+    } catch (_e) {}
+  }
+  function trackUpgradeSession(reason) {
+    try {
+      if (typeof window.clarity === 'function') window.clarity('upgrade', String(reason));
+    } catch (_e) {}
+  }
 
   function getStorageArea(kind) {
     return kind === 'local' ? window.localStorage : window.sessionStorage;
@@ -668,6 +705,8 @@
         '<div class="tcard__name">' + escapeHtml(t.type_name) + '</div>';
 
       btn.addEventListener('click', function () {
+        track('click_type_card_' + code);
+        track('open_type_modal_' + code);
         setHash('/types/' + code);
         applyRoute();
         setTimeout(function () {
@@ -979,6 +1018,7 @@
   }
   function markSecretUnlockedSeen() {
     storageSet('local', STORAGE_KEY_SECRET_UNLOCKED_SEEN, '1');
+    trackTag('secret_unlocked_seen', '1');
   }
 
   function getTraitForCodeAt(code, idx) {
@@ -2883,6 +2923,11 @@
     if (numEl) numEl.textContent = String(i + 1).padStart(2, '0');
     if (totEl) totEl.textContent = ' / ' + total;
 
+    // Clarity: 質問遷移を計測（quiz_step は 1-based）
+    var stepNo = i + 1;
+    trackTag('quiz_step', String(stepNo));
+    track('quiz_step_' + stepNo);
+
 
     // アニメーション
     el.qContent.classList.remove('anim-fwd', 'anim-back');
@@ -2946,6 +2991,9 @@
     var score = optionIndexToScore(optionIndex);
     state.answers[i] = score;
 
+    // Clarity: 質問ごとの選択を計測（step は 1-based、optIdx は 0..5）
+    track('quiz_answer_select_' + (i + 1) + '_' + optionIndex);
+
     // 選択状態を即反映
     var opts = el.qOptions.querySelectorAll('.likert__opt');
     var OPT_IDX = [5, 4, 3, 2, 1, 0];
@@ -2958,7 +3006,10 @@
     persistQuizProgress();
 
     if (last) {
-      setTimeout(function () { el.diagnoseDialog.hidden = false; }, 150);
+      setTimeout(function () {
+        track('modal_diagnose_shown');
+        el.diagnoseDialog.hidden = false;
+      }, 150);
       return;
     }
     advanceTimer = setTimeout(function () {
@@ -3082,6 +3133,8 @@
       unlockInteraction();
       return;
     }
+    // この時点で SECRET UNLOCKED 条件を満たしているので、Clarity 識別タグ更新
+    trackTag('secret_unlocked', '1');
     if (document.getElementById('secretCompatibility')) {
       unlockInteraction();
       return;
@@ -3218,9 +3271,27 @@
     el.typeModal.hidden = true;
     if (r.view !== 'typeDetail') unlockPageScroll();
 
-    if (r.view === 'welcome')    { showScreen('welcome'); return; }
-    if (r.view === 'types')      { updateTypesGoTopLabel(); showScreen('types', { preserveScroll: state.screen === 'types' }); return; }
+    if (r.view === 'welcome')    {
+      trackTag('mode', 'welcome');
+      track('view_welcome');
+      showScreen('welcome');
+      return;
+    }
+    if (r.view === 'types')      {
+      trackTag('mode', 'types');
+      track('view_types');
+      updateTypesGoTopLabel();
+      showScreen('types', { preserveScroll: state.screen === 'types' });
+      return;
+    }
     if (r.view === 'typeDetail') {
+      trackTag('mode', 'type_detail');
+      if (r.code) {
+        trackTag('type_detail_code', r.code);
+        track('view_type_detail_' + r.code);
+      } else {
+        track('view_type_detail');
+      }
       updateTypesGoTopLabel();
       showScreen('types', { preserveScroll: state.screen === 'types' });
       if (TYPES()[r.code]) renderTypeModal(r.code);
@@ -3228,6 +3299,13 @@
     }
     if (r.view === 'secretCompat') {
       if (renderSecretCompatibilityScreen(r.code)) {
+        trackTag('mode', 'secret_compat');
+        if (r.code) {
+          track('view_secret_compat_' + r.code);
+        } else {
+          track('view_secret_compat');
+        }
+        trackUpgradeSession('secret_compat');
         showScreen('secretCompat');
         return;
       }
@@ -3254,6 +3332,8 @@
           return;
         }
       }
+      trackTag('mode', 'quiz');
+      track('view_quiz');
       showScreen('quiz');
       updateQuizUI();
       return;
@@ -3281,10 +3361,18 @@
         if (!showRealScores) {
           state.lastScores = null;
         }
+        trackTag('mode', 'result');
+        trackTag('result_type', r.code);
+        track('view_result_' + r.code);
+        trackUpgradeSession('result');
         showScreen('result');
         if (fromSecretCompat) scrollResultToSecretCompatibility();
       } else if (state.lastCode && state.lastScores && TYPES()[state.lastCode]) {
         showResult(state.lastCode, state.lastScores, {});
+        trackTag('mode', 'result');
+        trackTag('result_type', state.lastCode);
+        track('view_result_' + state.lastCode);
+        trackUpgradeSession('result');
         showScreen('result');
         if (fromSecretCompat) scrollResultToSecretCompatibility();
       } else {
@@ -3302,6 +3390,11 @@
     unlockType(code);
     clearQuizProgressStorage();
     persistSavedResult();
+    // Clarity: 診断完了の識別タグ＆イベント
+    trackTag('has_diagnosed', '1');
+    trackTag('result_type', code);
+    track('diagnosis_complete_' + code);
+    trackUpgradeSession('diagnosis_complete');
     setHash('/result/' + code);
     applyRoute();
   }
@@ -3342,17 +3435,25 @@
   // ── イベントリスナー ─────────────────────────────────────────────────────────
 
   // ウェルカム
-  document.getElementById('headerBrand').addEventListener('click', goWelcome);
-  document.getElementById('btnStartQuiz').addEventListener('click', startQuiz);
+  document.getElementById('headerBrand').addEventListener('click', function () {
+    track('click_brand');
+    goWelcome();
+  });
+  document.getElementById('btnStartQuiz').addEventListener('click', function () {
+    track('click_start_quiz');
+    startQuiz();
+  });
 
   var welcomeStrip = document.getElementById('welcomeStrip');
   if (welcomeStrip) {
     welcomeStrip.addEventListener('click', function () {
+      track('click_welcome_strip');
       openTypesList('welcome');
     });
     welcomeStrip.addEventListener('keydown', function (e) {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
+        track('click_welcome_strip');
         openTypesList('welcome');
       }
     });
@@ -3361,23 +3462,32 @@
   var resultStrip = document.getElementById('resultStrip');
   if (resultStrip) {
     resultStrip.addEventListener('click', function () {
+      track('click_result_strip');
       openTypesList('result');
     });
     resultStrip.addEventListener('keydown', function (e) {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
+        track('click_result_strip');
         openTypesList('result');
       }
     });
   }
 
   // タイプ一覧
-  document.getElementById('typesBack').addEventListener('click', goTypesBack);
-  document.getElementById('typesGoTop').addEventListener('click', goTypesBack);
+  document.getElementById('typesBack').addEventListener('click', function () {
+    track('click_types_back');
+    goTypesBack();
+  });
+  document.getElementById('typesGoTop').addEventListener('click', function () {
+    track('click_types_go_top');
+    goTypesBack();
+  });
 
   // クイズ
   if (el.qBackBottom) {
     el.qBackBottom.addEventListener('click', function () {
+      track('click_quiz_back');
       if (advanceTimer) clearTimeout(advanceTimer);
       if (state.quizIndex <= 0) return;
       state.animFwd = false;
@@ -3387,6 +3497,7 @@
     });
   }
   el.qNext.addEventListener('click', function () {
+    track('click_quiz_next');
     var questions = SQ();
     if (state.quizIndex >= questions.length - 1) return;
     state.animFwd = true;
@@ -3395,42 +3506,58 @@
     updateQuizUI();
   });
   document.getElementById('quizClose').addEventListener('click', function () {
-    if (state.screen === 'quiz') { el.quitDialog.hidden = false; }
+    track('click_quiz_close');
+    if (state.screen === 'quiz') {
+      track('modal_quit_shown');
+      el.quitDialog.hidden = false;
+    }
   });
 
   // 診断確認
   document.getElementById('diagnoseConfirm').addEventListener('click', function () {
+    track('modal_diagnose_confirm');
     el.diagnoseDialog.hidden = true;
     finishQuiz();
   });
   document.getElementById('diagnoseCancel').addEventListener('click', function () {
+    track('modal_diagnose_cancel');
     el.diagnoseDialog.hidden = true;
   });
   el.diagnoseDialog.addEventListener('click', function (e) {
-    if (e.target === el.diagnoseDialog) el.diagnoseDialog.hidden = true;
+    if (e.target === el.diagnoseDialog) {
+      track('modal_diagnose_cancel');
+      el.diagnoseDialog.hidden = true;
+    }
   });
 
   // 中断確認
   document.getElementById('quitConfirm').addEventListener('click', function () {
+    track('modal_quit_confirm');
     el.quitDialog.hidden = true;
     clearQuizProgressStorage();
     resetQuizMemoryState();
     goWelcome();
   });
   document.getElementById('quitCancel').addEventListener('click', function () {
+    track('modal_quit_cancel');
     el.quitDialog.hidden = true;
   });
   el.quitDialog.addEventListener('click', function (e) {
-    if (e.target === el.quitDialog) el.quitDialog.hidden = true;
+    if (e.target === el.quitDialog) {
+      track('modal_quit_cancel');
+      el.quitDialog.hidden = true;
+    }
   });
 
   var BTN_SAVE_RESULT_DEFAULT = '診断結果を画像で保存';
   var saveResultImageButton = document.getElementById('btnSaveResultImage');
   if (saveResultImageButton) {
     saveResultImageButton.addEventListener('click', function () {
+      track('click_save_result_image');
       var btn = document.getElementById('btnSaveResultImage');
       if (!btn) return;
       if (!canSaveResultStoryImage()) {
+        track('save_result_image_blocked');
         window.alert(
           '診断完了後のみ、結果画像を保存できます。図鑑から開いている結果は見本のため保存できません。'
         );
@@ -3448,12 +3575,15 @@
         })
         .then(function (blob) {
           try {
+            track('save_result_image_success');
             return saveBlobAsPng(blob, buildResultPngFilename(state.lastCode));
           } catch (_e) {
+            track('save_result_image_error');
             window.alert('画像の保存を開始できませんでした（Safari は写真アプリへの保存などをご検討ください）。');
           }
         })
         .catch(function () {
+          track('save_result_image_error');
           window.alert('画像の作成に失敗しました。時間をおいて再度お試しください。');
         })
         .finally(function () {
@@ -3466,15 +3596,23 @@
   // 結果からトップへ：保存済み4軸がある場合は確認
   function promptResultDiscardThenWelcome() {
     if (state.lastCode && state.lastScores && isValidStoredSums(state.lastScores)) {
-      if (el.resultDiscardDialog) el.resultDiscardDialog.hidden = false;
-      else goWelcome();
+      if (el.resultDiscardDialog) {
+        track('modal_discard_shown');
+        el.resultDiscardDialog.hidden = false;
+      } else {
+        goWelcome();
+      }
     } else {
       goWelcome();
     }
   }
 
-  document.getElementById('resultBrand').addEventListener('click', promptResultDiscardThenWelcome);
+  document.getElementById('resultBrand').addEventListener('click', function () {
+    track('click_result_brand');
+    promptResultDiscardThenWelcome();
+  });
   document.getElementById('resultGoTop').addEventListener('click', function () {
+    track('click_result_go_top');
     try {
       window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
     } catch (_e) {
@@ -3486,6 +3624,7 @@
     if (!target) return;
     var root = target.closest('#secretCompatibility');
     if (root) {
+      track('secret_compat_button_click');
       goSecretCompatibility(root.getAttribute('data-my-code'));
     }
   });
@@ -3496,22 +3635,29 @@
     var root = target.closest('#secretCompatibility');
     if (!root) return;
     e.preventDefault();
+    track('secret_compat_button_click');
     goSecretCompatibility(root.getAttribute('data-my-code'));
   });
 
-  document.getElementById('secretCompatBack').addEventListener('click', goSecretCompatibilityBack);
+  document.getElementById('secretCompatBack').addEventListener('click', function () {
+    track('click_secret_compat_back');
+    goSecretCompatibilityBack();
+  });
   el.secretCompatPageBody.addEventListener('click', function (e) {
     var target = e.target && e.target.closest ? e.target : null;
     if (!target) return;
     var partnerBtn = target.closest('[data-secret-compat-code]');
     if (!partnerBtn) return;
+    var partnerCode = partnerBtn.getAttribute('data-secret-compat-code');
+    if (partnerCode) track('secret_compat_pick_' + partnerCode);
     selectSecretCompatibilityPartner(
       partnerBtn.closest('[data-secret-compat-root]'),
-      partnerBtn.getAttribute('data-secret-compat-code')
+      partnerCode
     );
   });
   if (el.resultDiscardDialog) {
     document.getElementById('resultDiscardConfirm').addEventListener('click', function () {
+      track('modal_discard_confirm');
       el.resultDiscardDialog.hidden = true;
       clearSavedResultStorage();
       state.lastCode = null;
@@ -3519,10 +3665,14 @@
       goWelcome();
     });
     document.getElementById('resultDiscardCancel').addEventListener('click', function () {
+      track('modal_discard_cancel');
       el.resultDiscardDialog.hidden = true;
     });
     el.resultDiscardDialog.addEventListener('click', function (e) {
-      if (e.target === el.resultDiscardDialog) el.resultDiscardDialog.hidden = true;
+      if (e.target === el.resultDiscardDialog) {
+        track('modal_discard_cancel');
+        el.resultDiscardDialog.hidden = true;
+      }
     });
   }
 
@@ -3737,6 +3887,7 @@
       return;
     }
     currentShareChannel = SHARE_CHANNELS[channel] ? channel : 'instagram';
+    track('share_dialog_open_' + currentShareChannel);
     var dialog = document.getElementById('instagramShareDialog');
     var cfg = SHARE_CHANNELS[currentShareChannel];
     var title = document.getElementById('shareDialogTitle');
@@ -3758,10 +3909,15 @@
 
   function closeShareSaveDialog() {
     var dialog = document.getElementById('instagramShareDialog');
-    if (dialog) dialog.hidden = true;
+    if (dialog) {
+      track('share_dialog_close');
+      dialog.hidden = true;
+    }
   }
 
   function showSecretUnlockedModal() {
+    track('secret_unlocked_modal_shown');
+    trackUpgradeSession('secret_unlocked');
     var bg = document.createElement('div');
     bg.className = 'modal-bg';
     bg.id = 'secretUnlockedModal';
@@ -3784,6 +3940,7 @@
     function closeModal() {
       if (closed) return;
       closed = true;
+      track('secret_unlocked_modal_confirm');
       if (bg.parentNode) bg.parentNode.removeChild(bg);
       // refreshSecretCompatibilityUnlock 側で全早期 return ブランチが必ず unlockInteraction を
       // 呼ぶよう改修済み。さらにスポットライトを未経由で抜ける極稀なケースのため、
@@ -3826,6 +3983,7 @@
     root.setAttribute('aria-live', 'polite');
 
     var celebrationVariant = normalizeShareTier(variant) || 1;
+    track('celebration_shown_' + celebrationVariant);
 
     // 固定配色・フォント・サイズ・回転（"絶対にシェアしてネ" 各9文字）
     var RANSOM_FIXED = [
@@ -3997,6 +4155,7 @@
     var options = opts || {};
     var shouldRecord = options.record !== false;
     var shouldClose = options.close !== false;
+    track('share_dialog_save_click_' + currentShareChannel);
     var restore = setShareButtonBusy(btn, '保存中…');
     createResultImageBlob()
       .then(function (blob) {
@@ -4005,9 +4164,15 @@
       .then(function (saved) {
         if (saved === false) return;
         if (!shouldRecord) return;
+        track('share_save_success_' + currentShareChannel);
         return copyShareUrlOnly().then(function () {
           var rawVariant = recordShareDownloadSuccess(currentShareChannel);
           var variant = effectiveCelebrationVariant(rawVariant);
+          // share_count は recordShareDownloadSuccess 後の最新値で更新
+          try {
+            var pAfter = loadShareProgress();
+            trackTag('share_count', String(getShareCompletionCount(pAfter)));
+          } catch (_e) {}
           if (shouldClose) closeShareSaveDialog();
           showAnimalCelebration(variant);
           if (variant !== 3) {
@@ -4017,17 +4182,23 @@
         });
       })
       .catch(function () {
+        track('share_save_error_' + currentShareChannel);
         window.alert('シェア用の画像保存に失敗しました。時間をおいて再度お試しください。');
       })
       .finally(restore);
   }
 
   function promiseShareFromDialog(btn) {
+    track('share_promise_click_' + currentShareChannel);
     var restore = setShareButtonBusy(btn, '約束中…');
     copyShareUrlOnly()
       .then(function () {
         var rawVariant = recordShareDownloadSuccess(currentShareChannel);
         var variant = effectiveCelebrationVariant(rawVariant);
+        try {
+          var pAfter = loadShareProgress();
+          trackTag('share_count', String(getShareCompletionCount(pAfter)));
+        } catch (_e) {}
         closeShareSaveDialog();
         showAnimalCelebration(variant);
         if (variant !== 3) {
@@ -4074,16 +4245,26 @@
   if (instagramShareDismiss) {
     instagramShareDismiss.addEventListener('click', function (e) {
       e.stopPropagation();
+      track('share_dialog_dismiss');
       closeShareSaveDialog();
     });
   }
   document.getElementById('instagramShareDialog').addEventListener('click', function (e) {
-    if (e.target === document.getElementById('instagramShareDialog')) closeShareSaveDialog();
+    if (e.target === document.getElementById('instagramShareDialog')) {
+      track('share_dialog_backdrop_close');
+      closeShareSaveDialog();
+    }
   });
 
   // タイプ詳細シート
-  document.getElementById('typeModalClose').addEventListener('click', closeSheet);
-  el.typeModalBackdrop.addEventListener('click', closeSheet);
+  document.getElementById('typeModalClose').addEventListener('click', function () {
+    track('close_type_modal');
+    closeSheet();
+  });
+  el.typeModalBackdrop.addEventListener('click', function () {
+    track('close_type_modal');
+    closeSheet();
+  });
 
   // スワイプで閉じる
   var swipeStartY = 0, swipeDelta = 0;

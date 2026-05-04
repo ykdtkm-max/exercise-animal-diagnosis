@@ -5,10 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://*.supabase.co; object-src 'none'; base-uri 'self'; form-action 'none'"
+      content="default-src 'self'; script-src 'self' https://www.clarity.ms https://*.clarity.ms; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.clarity.ms https://c.bing.com; connect-src 'self' https://*.supabase.co https://*.clarity.ms https://c.bing.com; object-src 'none'; base-uri 'self'; form-action 'none'"
     />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     <title>運動アニマル図鑑 — あなたの運動タイプを診断しよう！</title>
+    <script src="clarity-init.js?v=clarity-1"></script>
     <link rel="icon" type="image/png" href="favicon.png" />
     <!-- OGP: デプロイ後 SITE_URL を実際の本番 URL に差し替えること -->
     <meta property="og:title" content="運動アニマル図鑑 — あなたの運動タイプを診断しよう！" />
@@ -24,7 +25,7 @@
     <meta name="twitter:image" content="https://SITE_URL/OGP.png" />
     <link rel="stylesheet" href="tokens.css?v=exercise-t2" />
     <link rel="stylesheet" href="components.css?v=exercise-c13" />
-    <link rel="stylesheet" href="styles.css?v=exercise-v264" />
+    <link rel="stylesheet" href="styles.css?v=exercise-v265" />
   </head>
   <body class="app-booting">
     <!-- ═══════════════ Welcome ═══════════════ -->
