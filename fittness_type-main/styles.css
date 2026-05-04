@@ -839,8 +839,8 @@ body.app-booting {
 /* キャラクターピン — アイコンを座標のアンカーとして固定 */
 .motion-fit__pin {
   position: absolute;
-  width: 69px;
-  height: 69px;
+  width: 59px;
+  height: 59px;
   transform: translate(-50%, -50%);
   z-index: 2;
 }
@@ -866,8 +866,8 @@ body.app-booting {
   transform: translateX(-50%);
   background: var(--bubble-bg, var(--cream));
   color: var(--ink);
-  font-size: 9px;
-  font-weight: 900;
+  font-size: 8px;
+  font-weight: 400;
   letter-spacing: 0.06em;
   padding: 3px 7px;
   border-radius: var(--r-pill);
