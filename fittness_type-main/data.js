@@ -1,6 +1,6 @@
 /**
  * 運動タイプ診断 v2 — 32問（06_新診断仕様）
- * polarity: その質問で「賛成」が向かう極（軸のマイナス側 S/F/A/C または プラス側 G/P/T/D）
+ * polarity: その質問で「賛成」が向かう極（軸のマイナス側 S/F/M/C または プラス側 G/P/V/D）
  */
 window.EXERCISE_V2_OPTION_LABELS = [
   'とても賛成',
@@ -12,8 +12,8 @@ window.EXERCISE_V2_OPTION_LABELS = [
 ];
 
 window.EXERCISE_V2_TYPE_ORDER = [
-  'SFAC', 'SFAD', 'SFTC', 'SFTD', 'SPAC', 'SPAD', 'SPTC', 'SPTD',
-  'GFAC', 'GFAD', 'GFTC', 'GFTD', 'GPAC', 'GPAD', 'GPTC', 'GPTD',
+  'SFMC', 'SFMD', 'SFVC', 'SFVD', 'SPMC', 'SPMD', 'SPVC', 'SPVD',
+  'GFMC', 'GFMD', 'GFVC', 'GFVD', 'GPMC', 'GPMD', 'GPVC', 'GPVD',
 ];
 
 window.EXERCISE_V2_QUESTIONS = [
@@ -35,16 +35,16 @@ window.EXERCISE_V2_QUESTIONS = [
   { orderIndex: 14, text: '急に予定が変わったり、段取りが狂ったりすると、気分が乱れやすい',                                   axis: 2, polarity: 'P' },
   { orderIndex: 15, text: 'やるべきことをリスト化したり整理したりすることに、ある種の達成感を覚える',                           axis: 2, polarity: 'P' },
   { orderIndex: 16, text: '先の予定をあまり決めず、直前に判断することの方が多い',                                          axis: 2, polarity: 'F' },
-  // Axis 3: Assertive(A) vs Turbulent(T)
-  { orderIndex: 17, text: 'うまくいかないことがあっても、比較的早く気持ちを切り替えられる方だ',                                axis: 3, polarity: 'A' },
-  { orderIndex: 18, text: '批判されたり評価が低かったりすると、しばらく引きずってしまう方だ',                                 axis: 3, polarity: 'T' },
-  { orderIndex: 19, text: '完璧にできなくてもとりあえず前に進む、という考え方が自分には合っている',                            axis: 3, polarity: 'A' },
-  { orderIndex: 20, text: '周りと比べて自分が遅れていると感じると、やる気が落ちることが多い',                                 axis: 3, polarity: 'T' },
-  { orderIndex: 21, text: '何かで行き詰まったとき、「次に何ができるか」を考える方に気持ちが向く',                              axis: 3, polarity: 'A' },
-  { orderIndex: 22, text: '調子の良い日と悪い日の差が大きく、気分のムラを感じることが多い',                                  axis: 3, polarity: 'T' },
-  { orderIndex: 23, text: '一度やめてしまったことでも、また始めることにあまり心理的な抵抗がない',                              axis: 3, polarity: 'A' },
-  { orderIndex: 24, text: '調子が出ていないときは、無理に取り組んでも意味がないと感じる',                                    axis: 3, polarity: 'T' },
-  // Axis 4: Calm(C) vs Drive(D)
+  // Axis 3: Moment(M) vs Vision(V)
+  { orderIndex: 17, text: 'うまくいかないことがあっても、比較的早く気持ちを切り替えられる方だ',                                axis: 3, polarity: 'M' },
+  { orderIndex: 18, text: '批判されたり評価が低かったりすると、しばらく引きずってしまう方だ',                                 axis: 3, polarity: 'V' },
+  { orderIndex: 19, text: '完璧にできなくてもとりあえず前に進む、という考え方が自分には合っている',                            axis: 3, polarity: 'M' },
+  { orderIndex: 20, text: '周りと比べて自分が遅れていると感じると、やる気が落ちることが多い',                                 axis: 3, polarity: 'V' },
+  { orderIndex: 21, text: '何かで行き詰まったとき、「次に何ができるか」を考える方に気持ちが向く',                              axis: 3, polarity: 'M' },
+  { orderIndex: 22, text: '調子の良い日と悪い日の差が大きく、気分のムラを感じることが多い',                                  axis: 3, polarity: 'V' },
+  { orderIndex: 23, text: '一度やめてしまったことでも、また始めることにあまり心理的な抵抗がない',                              axis: 3, polarity: 'M' },
+  { orderIndex: 24, text: '調子が出ていないときは、無理に取り組んでも意味がないと感じる',                                    axis: 3, polarity: 'V' },
+  // Axis 4: Chill（C）vs Drive（高める・D）
   { orderIndex: 25, text: '自分のペースで無理なく続けることを、大きな成果より優先する方だ',                                   axis: 4, polarity: 'C' },
   { orderIndex: 26, text: '高い目標や難しい課題に向かうとき、燃えてくるような感覚がある',                                    axis: 4, polarity: 'D' },
   { orderIndex: 27, text: '少し余裕のある目標設定の方が、高い目標より自分には合っていると感じる',                              axis: 4, polarity: 'C' },

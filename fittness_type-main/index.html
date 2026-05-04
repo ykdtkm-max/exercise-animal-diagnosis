@@ -5,22 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://*.supabase.co; object-src 'none'; base-uri 'self'; form-action 'none'"
     />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
-    <title>運動アニマル図鑑 — あなたの運動アニマルを診断しよう！</title>
+    <title>運動アニマル図鑑 — あなたの運動タイプを診断しよう！</title>
     <link rel="icon" type="image/png" href="favicon.png" />
-    <meta property="og:title" content="運動アニマル図鑑 — あなたの運動アニマルを診断しよう！" />
+    <!-- OGP: デプロイ後 SITE_URL を実際の本番 URL に差し替えること -->
+    <meta property="og:title" content="運動アニマル図鑑 — あなたの運動タイプを診断しよう！" />
     <meta property="og:description" content="4つの軸から、16アニマルの運動スタイルを判定します。" />
-    <meta property="og:image" content="OGP.png" />
+    <meta property="og:url" content="https://SITE_URL/" />
+    <meta property="og:image" content="https://SITE_URL/OGP.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="運動アニマル図鑑 — あなたの運動アニマルを診断しよう！" />
+    <meta name="twitter:title" content="運動アニマル図鑑 — あなたの運動タイプを診断しよう！" />
     <meta name="twitter:description" content="4つの軸から、16アニマルの運動スタイルを判定します。" />
-    <meta name="twitter:image" content="OGP.png" />
-    <link rel="stylesheet" href="tokens.css" />
-    <link rel="stylesheet" href="components.css?v=exercise-c6" />
-    <link rel="stylesheet" href="styles.css?v=exercise-v133" />
+    <meta name="twitter:image" content="https://SITE_URL/OGP.png" />
+    <link rel="stylesheet" href="tokens.css?v=exercise-t2" />
+    <link rel="stylesheet" href="components.css?v=exercise-c10" />
+    <link rel="stylesheet" href="styles.css?v=exercise-v254" />
   </head>
   <body class="app-booting">
     <!-- ═══════════════ Welcome ═══════════════ -->
@@ -44,7 +48,7 @@
 
         <main class="hero">
           <h1 class="hero__title">
-            あなたの<em>運動アニマル</em>を<br />診断しよう！
+            あなたの<em>運動タイプ</em>を<br />診断しよう！
           </h1>
 
           <div class="cluster">
@@ -52,13 +56,13 @@
             <span class="sparkle s2">✧</span>
             <span class="sparkle s3">✦</span>
 
-            <div class="float float--tl" data-code="GFTC"></div>
-            <div class="float float--tr" data-code="SPAD"></div>
-            <div class="float float--side-l" data-code="GPAD"></div>
-            <div class="float float--side-r" data-code="GPTC"></div>
-            <div class="float float--center" data-code="SFAC"></div>
-            <div class="float float--bl" data-code="GFAD"></div>
-            <div class="float float--br" data-code="SFTD"></div>
+            <div class="float float--tl" data-code="GFVC"></div>
+            <div class="float float--tr" data-code="SPMD"></div>
+            <div class="float float--side-l" data-code="GPMD"></div>
+            <div class="float float--side-r" data-code="GPVC"></div>
+            <div class="float float--center" data-code="SPMC"></div>
+            <div class="float float--bl" data-code="GFMD"></div>
+            <div class="float float--br" data-code="SFVD"></div>
           </div>
 
           <div class="cta">
@@ -93,7 +97,7 @@
           <span style="width: 44px"></span>
         </header>
         <h1 class="types-title">運動アニマル図鑑</h1>
-        <p class="types-lead">タップすると詳細を表示します。</p>
+        <p class="types-lead">タップして仲間の姿を確認しよう！</p>
         <div class="types-grid" id="typesGrid"></div>
         <footer class="types-footer">
           <button type="button" class="types-footer__top" id="typesGoTop">
@@ -180,12 +184,14 @@
         <div id="resultSections"></div>
 
         <div class="result-actions">
-          <p id="resultShareHeading" class="result-actions__share-heading">結果画像を保存してシェア</p>
-          <div
-            class="result-actions__share"
-            role="group"
-            aria-labelledby="resultShareHeading"
-          >
+          <div class="result-actions__share-card">
+            <p id="resultShareHeading" class="result-actions__share-heading">結果をシェアする</p>
+            <p class="result-actions__share-subheading">診断結果の画像をダウンロードできます</p>
+            <div
+              class="result-actions__share"
+              role="group"
+              aria-labelledby="resultShareHeading"
+            >
             <button class="btn btn--instagram" id="btnShareInstagram" type="button" aria-label="Instagramでシェア">
               Instagram
             </button>
@@ -200,6 +206,7 @@
             <button class="btn btn--line" id="btnShareLine" type="button" aria-label="LINEでシェア">
               LINE
             </button>
+            </div>
           </div>
           <div class="result-actions__catalog">
             <section
@@ -210,8 +217,11 @@
               aria-label="16アニマル一覧を見る"
             >
               <div class="strip__label">
-                <b>16 ANIMALS</b>
-                <small>図鑑の仲間たち</small>
+                <div class="strip__label-left">
+                  <b>16 ANIMALS</b>
+                  <small>図鑑の仲間たち</small>
+                </div>
+                <span class="strip__cta">VIEW ALL&thinsp;→</span>
               </div>
               <div class="strip__track" id="strip-track-result"></div>
             </section>
@@ -230,7 +240,6 @@
       <div class="stage secret-compat-stage">
         <header class="types-nav">
           <button class="iconbtn" id="secretCompatBack" aria-label="診断結果に戻る">←</button>
-          <span class="brand-min">アニマル相性診断</span>
           <span style="width: 44px"></span>
         </header>
         <div id="secretCompatPageBody"></div>
@@ -260,7 +269,7 @@
     <div class="modal-bg" id="diagnoseDialog" hidden>
       <div class="modal">
         <div class="modal__icon">✦</div>
-        <h2>この回答で<br />診断しますか？</h2>
+        <h2>この回答で診断しますか？</h2>
         <p>
           すべての質問に回答が完了しました！<br />あなたの運動アニマルを診断します。
         </p>
@@ -315,7 +324,7 @@
       <div class="modal modal--share">
         <button
           type="button"
-          class="share-modal-dismiss"
+          class="modal__close"
           id="instagramShareDismiss"
           hidden
           aria-label="閉じる"
@@ -346,9 +355,9 @@
       <div><div id="headerQuizFill"></div></div>
     </div>
 
-    <script src="chars-data.js?v=exercise-ch6"></script>
-    <script src="types-data.js?v=exercise-v2"></script>
-    <script src="data.js?v=exercise-v3"></script>
-    <script src="app.js?v=exercise-v133"></script>
+    <script src="chars-data.js?v=exercise-ch18"></script>
+    <!-- Supabase（フィットネスアニマル）: Project URL + anon（公開前提） -->
+    <script src="supabase-config.js?v=fitness-animal-1"></script>
+    <script src="content-loader.js?v=exercise-cl17"></script>
   </body>
 </html>

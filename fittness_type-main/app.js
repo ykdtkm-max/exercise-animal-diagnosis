@@ -9,8 +9,8 @@
   var AXES   = function () { return window.AXIS_INFO || []; };
 
   var AXIS_KEY  = { 1:'social', 2:'structure', 3:'resilience', 4:'intensity' };
-  var PLUS_POLE = { 1:'G', 2:'P', 3:'T', 4:'D' };
-  var MINUS_POLE= { 1:'S', 2:'F', 3:'A', 4:'C' };
+  var PLUS_POLE = { 1:'G', 2:'P', 3:'V', 4:'D' };
+  var MINUS_POLE= { 1:'S', 2:'F', 3:'M', 4:'C' };
 
   // ── ユーティリティ ──────────────────────────────────────────────────────────
   function shuffleArray(arr) {
@@ -139,7 +139,7 @@
     if (!c) return '';
     var src = safeAssetUrl(c.img);
     if (!src) return '';
-    return '<img src="' + escapeAttr(src) + '" alt="' + escapeAttr(alt || c.animal) + '" loading="lazy">';
+    return '<img src="' + escapeAttr(src) + '" alt="' + escapeAttr(alt || c.animal) + '">';
   }
 
   function charImgFullHtml(code, alt) {
@@ -147,7 +147,7 @@
     if (!c) return '';
     var src = safeAssetUrl(c.imgFull || c.img);
     if (!src) return '';
-    return '<img src="' + escapeAttr(src) + '" alt="' + escapeAttr(alt || c.animal) + '" loading="lazy">';
+    return '<img src="' + escapeAttr(src) + '" alt="' + escapeAttr(alt || c.animal) + '">';
   }
 
   // ── スコア計算 ──────────────────────────────────────────────────────────────
@@ -191,6 +191,8 @@
         sums[k] = 1;
       } else if (posWeight[k] < negWeight[k]) {
         sums[k] = -1;
+      } else {
+        sums[k] = Math.random() < 0.5 ? 1 : -1;
       }
     });
     return { sums: sums, posCount: posCount, negCount: negCount };
@@ -215,7 +217,7 @@
 
   /** 各軸8問×応答±3 ⇒ 最大|sum|=24 を UI 用 −100〜+100 に線形換算（5点刻みで切り上げ） */
   function normalizeAxis(n) {
-    if (!n) return 0;
+    if (!n) return 5; // スコア0は存在しない仕様（完全同点の場合は+5扱いとする）
     var sign = n > 0 ? 1 : -1;
     var rounded = Math.ceil((Math.abs(n) / 24) * 100 / 5) * 5;
     return sign * Math.max(5, Math.min(100, rounded));
@@ -642,24 +644,6 @@
     return { view:'welcome' };
   }
 
-  // ── タイプ一覧グリッド ──────────────────────────────────────────────────────
-  var CARD_TAGLINES = {
-    SFAC: '義務なく、気ままに動く。',
-    SFAD: '衝動で、一人全力。',
-    SFTD: 'スイッチで深く追う。',
-    SPAC: '気づけば続いている。',
-    SPAD: '昨日の数字を更新。',
-    SPTC: '完璧な日が報酬。',
-    SPTD: '緻密に計画し追う。',
-    GFAC: '誰かと自然に動く。',
-    GFAD: '熱い体験が燃料。',
-    GFTC: '人の存在が理由。',
-    GFTD: '誰かの本気で燃える。',
-    GPAD: '目標と計画で勝つ。',
-    GPTC: '仲間のために続く。',
-    GPTD: 'チーム本気で燃える。',
-  };
-
   function renderTypesGrid() {
     var frag = document.createDocumentFragment();
     ORDER().forEach(function (code) {
@@ -670,16 +654,14 @@
       var btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'tcard';
-      btn.setAttribute('aria-label', code + ' ' + t.type_name);
+      btn.setAttribute('aria-label', escapeAttr(code + ' ' + t.type_name));
 
       var tint = safeCssColor(c && c.tint, '#FFE9C2');
       var img  = c ? (isTypeUnlocked(code) ? charImgFullHtml(code) : charImgHtml(code)) : '';
-      var cardTagline = CARD_TAGLINES[code] || t.tagline || '';
 
       btn.innerHTML =
         '<span class="tcard__code">' + escapeHtml(code) + '</span>' +
         '<div class="tcard__visual" style="background:' + tint + '">' + img + '</div>' +
-        '<div class="tcard__title">' + escapeHtml(cardTagline) + '</div>' +
         '<div class="tcard__name">' + escapeHtml(t.type_name) + '</div>';
 
       btn.addEventListener('click', function () {
@@ -694,6 +676,49 @@
     });
     el.typesGrid.innerHTML = '';
     el.typesGrid.appendChild(frag);
+  }
+
+  // ── インタラクション完全ロック（お祝い〜スポットライト期間） ───────────────────
+  // overflow:hidden は programmatic scrollIntoView を妨げるため使わない。
+  // クリック/タップ は blocker div (pointer-events:all, touch-action:none) でブロック。
+  // ホイール は wheel イベントリスナーでブロック。
+  var _lockWheelFn = null;
+
+  // ゆっくりスクロール（duration ms の ease-in-out、programmatic なので lockInteraction の影響を受けない）
+  function slowScrollTo(targetY, duration) {
+    var startY = window.scrollY;
+    var diff = targetY - startY;
+    var startTime = null;
+    function step(ts) {
+      if (!startTime) startTime = ts;
+      var elapsed = ts - startTime;
+      var progress = Math.min(elapsed / duration, 1);
+      var ease = progress < 0.5
+        ? 2 * progress * progress
+        : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+      window.scrollTo(0, startY + diff * ease);
+      if (progress < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  function lockInteraction() {
+    if (document.getElementById('interactionBlocker')) return;
+    var blocker = document.createElement('div');
+    blocker.id = 'interactionBlocker';
+    blocker.style.cssText = 'position:fixed;inset:0;z-index:9999;touch-action:none;pointer-events:all;';
+    document.body.appendChild(blocker);
+    _lockWheelFn = function (e) { e.preventDefault(); };
+    window.addEventListener('wheel', _lockWheelFn, { passive: false });
+  }
+
+  function unlockInteraction() {
+    if (_lockWheelFn) {
+      window.removeEventListener('wheel', _lockWheelFn);
+      _lockWheelFn = null;
+    }
+    var blocker = document.getElementById('interactionBlocker');
+    if (blocker && blocker.parentNode) blocker.parentNode.removeChild(blocker);
   }
 
   // ── タイプ詳細シート ─────────────────────────────────────────────────────────
@@ -754,9 +779,9 @@
     openSheet();
   }
 
-  // タイプコード（SFAC等）を動物名に置換
+  // タイプコード（SFMC等）を動物名に置換
   function replaceTypeCodes(text) {
-    return text.replace(/\b[SGFPATCD]{4}\b/g, function (code) {
+    return text.replace(/\b[SGFPMVCD]{4}\b/g, function (code) {
       var c = CHARS()[code];
       return c ? c.animal : code;
     });
@@ -765,8 +790,7 @@
   // ── 相性カード ───────────────────────────────────────────────────────────────
   function compatCard(c, badgeClass, badgeLabel) {
     var ch = CHARS()[c.code];
-      var tint = safeCssColor(ch && ch.tint, '#FFE9C2');
-    var animal = ch ? ch.animal : c.code;
+    var tint = safeCssColor(ch && ch.tint, '#FFE9C2');
     return (
       '<div class="compat-card">' +
         '<div class="compat-card__side">' +
@@ -776,7 +800,7 @@
           '</div>' +
         '</div>' +
         '<div class="compat-card__body">' +
-          '<div class="compat-card__name">' + escapeHtml(c.name) + '（' + escapeHtml(animal) + '）</div>' +
+          '<div class="compat-card__name">' + escapeHtml(c.name) + '</div>' +
           '<div class="compat-card__msg">' + escapeHtml(replaceTypeCodes(c.reason)) + '</div>' +
         '</div>' +
       '</div>'
@@ -787,8 +811,8 @@
     var goodItems = (compat && compat.good) || [];
     var badItems  = (compat && compat.bad)  || [];
     var inner = '';
-    if (goodItems.length) inner += compatCard(goodItems[0], 'pill--good', '相性◎');
-    if (badItems.length)  inner += compatCard(badItems[0],  'pill--care', '要注意');
+    if (goodItems.length) inner += compatCard(goodItems[0], 'pill--good', '最強タッグ');
+    if (badItems.length)  inner += compatCard(badItems[0],  'pill--care', '真反対ペア');
     if (!inner) inner = '<p style="font-size:13px;color:var(--ink-mute);">相性データがありません。</p>';
     return (
       '<div class="sec">' +
@@ -946,8 +970,8 @@
   function findListedCompatibility(myType, otherCode) {
     var compat = (myType && myType.compatible_types) || {};
     var groups = [
-      { key:'good', label:'相性◎', cls:'pill--good' },
-      { key:'bad', label:'要注意', cls:'pill--care' },
+      { key:'good', label:'最強タッグ', cls:'pill--good' },
+      { key:'bad', label:'真反対ペア', cls:'pill--care' },
     ];
     var found = null;
     groups.some(function (group) {
@@ -965,12 +989,265 @@
     return found;
   }
 
-  function buildSecretCompatibilityDetailHtml(myCode, otherCode) {
-    var myType = TYPES()[myCode];
-    var otherType = TYPES()[otherCode];
-    var otherChar = CHARS()[otherCode];
-    if (!myType || !otherType || !otherChar) return '';
+  function getSecretCompatPairDetail(myCode, otherCode) {
+    try {
+      var root =
+        typeof window !== 'undefined' && window.SECRET_COMPAT_PAIR_DETAIL &&
+        typeof window.SECRET_COMPAT_PAIR_DETAIL === 'object'
+          ? window.SECRET_COMPAT_PAIR_DETAIL
+          : null;
+      if (!root || !myCode || !otherCode || !root[myCode]) return null;
+      return root[myCode][otherCode] || null;
+    } catch (e) {
+      return null;
+    }
+  }
 
+  function compatBlocksToPlainForPill(blocks) {
+    if (!blocks || !blocks.length) return '';
+    var s = '';
+    blocks.forEach(function (b) {
+      if (!b || !b.t) return;
+      if (b.t === 'p') s += String(b.text || '') + '\n';
+      else if (b.t === 'ul' || b.t === 'ol') {
+        (b.items || []).forEach(function (it) { s += String(it || '') + '\n'; });
+      } else if (b.t === 'q') {
+        (b.lines || []).forEach(function (ln) { s += String(ln || '') + '\n'; });
+      } else if (b.t === 'pre') s += String(b.text || '') + '\n';
+    });
+    return s;
+  }
+
+  /** raw already escapeHtml-safe; inserts <strong> for **…** spans */
+  function compatInlineBoldOnEscaped(rawEscaped) {
+    return String(rawEscaped || '').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  }
+
+  function stripCompatMarkdownText(text) {
+    return String(text || '')
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/`([^`]+)`/g, '$1')
+      .replace(/^[○◯]\s*/, '')
+      .replace(/^[✗×]\s*/, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function softenCompatText(text) {
+    return stripCompatMarkdownText(text)
+      // H3/H4・旧D記法などのシステム参照を含む文ごと除去
+      .replace(/[^。！？]*(?:[DH][34]\s*(?:good|bad)|軸違い隣接タイプ|隣接タイプ)[^。！？]*[。！？]?\s*/g, '')
+      // "Plan×ありたい×Drive" / "Group・Solo" 等の英字軸コード組み合わせを含む文ごと除去
+      .replace(/[^。！？]*[A-Za-z]+(?:[・×][A-Za-z]+)+[^。！？]*[。！？]?\s*/g, '')
+      // Group/Solo を日本語に変換（上記で残った単語）
+      .replace(/\bGroup\b/g, 'グループ').replace(/\bSolo\b/g, 'ひとり')
+      // "グループ か ひとり か" → "グループかひとりか"
+      .replace(/\s+か\s+/g, 'か')
+      // "計画の共鳴: " / "ライオン が誘う: " 等の冒頭ラベルを除去
+      .replace(/^[^。！？：:]{2,20}[：:]\s*/g, '')
+      // "プラン名 — 説明" の em ダッシュを "では、" に変換して文として接続
+      .replace(/\s*[—–]\s*/g, 'では、')
+      // 既存の言い換え
+      .replace(/D3\s*goodの理由通り[：:]\s*/g, '')
+      .replace(/D3\s*badの理由通り[：:]\s*/g, '')
+      .replace(/公式コンテンツ認定[。.]?/g, '')
+      .replace(/公式コンテンツ/g, '')
+      .replace(/基準型/g, 'あなた')
+      .replace(/衝突しやすい/g, 'すれ違いやすい')
+      .replace(/怠惰に映る/g, 'ペースが合わないように見える')
+      .replace(/理解しがたい/g, '理解しにくい')
+      .replace(/根本的に矛盾する/g, '大きくずれやすい')
+      .replace(/根本から衝突する/g, '大きくずれやすい')
+      .replace(/破壊する/g, '崩してしまいやすい')
+      .replace(/天敵になりかねない/g, '負担になりやすい')
+      .replace(/[^。]*ハミング距離[^。]*。?/g, '')
+      .replace(/\s+/g, ' ')
+      // 「グループかひとり か」のように括弧終わりや句読点前の無駄スペースを除去
+      .replace(/\s+(か(?=[」』。!?！？]))/g, 'か')
+      .trim();
+  }
+
+  function sectionBlocks(secMap, key) {
+    var sec = secMap && secMap[key];
+    return sec && sec.blocks ? sec.blocks : [];
+  }
+
+  function secretCompatListItems(secMap, key, maxItems, opts) {
+    var options = opts || {};
+    var items = [];
+    sectionBlocks(secMap, key).some(function (b) {
+      if (!b || !b.t) return false;
+      if (b.t === 'ul' || b.t === 'ol') {
+        (b.items || []).some(function (raw) {
+          var s = String(raw || '').trim();
+          var isNegativeInvite = /^[✗×]/.test(s);
+          if (options.positiveOnly && isNegativeInvite) return false;
+          if (!options.asIs) s = softenCompatText(s);
+          if (!s) return false;
+          if (!options.asIs && s.length < 8) return false;
+          if (!options.asIs && /^[がはにをもとでやのへよりから]/.test(s)) return false;
+          items.push(s);
+          return items.length >= maxItems;
+        });
+      } else if (b.t === 'p') {
+        var s = String(b.text || '').trim();
+        if (!options.asIs) s = softenCompatText(s);
+        if (s) {
+          if (options.asIs || (s.length >= 8 && !/^[がはにをもとでやのへよりから]/.test(s))) {
+            items.push(s);
+          }
+        }
+      }
+      return items.length >= maxItems;
+    });
+    return items.slice(0, maxItems);
+  }
+
+  function renderSecretCompatAxisCompare(myCode, otherCode) {
+    var html = '<div class="secret-compat-axis">';
+    for (var i = 0; i < 4; i += 1) {
+      var mine = getTraitForCodeAt(myCode, i);
+      var theirs = getTraitForCodeAt(otherCode, i);
+      var isSame = myCode.charAt(i) === otherCode.charAt(i);
+      html +=
+        '<div class="secret-compat-axis__row a-' + (i + 1) + '">' +
+          '<div class="secret-compat-axis__side secret-compat-axis__side--mine">' +
+            '<span class="secret-compat-axis__jp">' + escapeHtml(mine.desc || '') + '</span>' +
+            '<b class="secret-compat-axis__letter">' + escapeHtml(mine.k || '') + '</b>' +
+          '</div>' +
+          '<div class="secret-compat-axis__center">' +
+            '<span class="secret-compat-axis__match secret-compat-axis__match--' + (isSame ? 'same' : 'diff') + '">' +
+              (isSame ? '一致' : '違う') +
+            '</span>' +
+          '</div>' +
+          '<div class="secret-compat-axis__side secret-compat-axis__side--right">' +
+            '<span class="secret-compat-axis__jp">' + escapeHtml(theirs.desc || '') + '</span>' +
+            '<b class="secret-compat-axis__letter">' + escapeHtml(theirs.k || '') + '</b>' +
+          '</div>' +
+        '</div>';
+    }
+    html += '</div>';
+    return html;
+  }
+
+  function renderSecretCompatSec(numStr, label, innerHtml) {
+    if (!innerHtml) return '';
+    return (
+      '<div class="sec">' +
+        '<div class="sec__head">' +
+          (numStr ? '<span class="num">' + escapeHtml(numStr) + '</span>' : '') +
+          '<h3>' + escapeHtml(label) + '</h3>' +
+          '<span class="deco"></span>' +
+        '</div>' +
+        innerHtml +
+      '</div>'
+    );
+  }
+
+  function renderSecretCompatTips(items) {
+    if (!items || !items.length) return '';
+    var html = '<div class="tips">';
+    items.forEach(function (text, i) {
+      html +=
+        '<div class="tip">' +
+          '<div class="tip__num">' + (i + 1) + '</div>' +
+          '<div class="tip__text">' + escapeHtml(replaceTypeCodes(text)) + '</div>' +
+        '</div>';
+    });
+    html += '</div>';
+    return html;
+  }
+
+  /** リスト項目を 。区切りの1段落文字列に結合する */
+  function joinCompatItemsToPara(items) {
+    if (!items || !items.length) return '';
+    return items.map(function (s) {
+      s = s.trim();
+      if (!s) return '';
+      if (!/[。！？]$/.test(s)) s += '。';
+      return s;
+    }).filter(Boolean).join('');
+  }
+
+  function joinCompatItemsToCards(items) {
+    if (!items || !items.length) return '';
+    return items.map(function (s) {
+      s = s.trim();
+      if (!s) return '';
+      if (!/[。！？]$/.test(s)) s += '。';
+      return '<div class="desc-card"><p>' + escapeHtml(replaceTypeCodes(s)) + '</p></div>';
+    }).filter(Boolean).join('');
+  }
+
+  function joinCompatItemsToMultipleParas(items) {
+    if (!items || !items.length) return '';
+    return items.map(function (s) {
+      s = s.trim();
+      if (!s) return '';
+      if (!/[。！？]$/.test(s)) s += '。';
+      return '<p>' + escapeHtml(replaceTypeCodes(s)) + '</p>';
+    }).filter(Boolean).join('');
+  }
+
+  function buildSecretCompatCompactSections(secMap, myCode, otherCode) {
+    var html = renderSecretCompatAxisCompare(myCode, otherCode);
+
+    // 新しいA案のセクションがあるかチェック
+    var hasNewSections = secMap.highlight || secMap.enjoyTips || secMap.caution;
+
+    if (hasNewSections) {
+      var highlightHtml = joinCompatItemsToMultipleParas(secretCompatListItems(secMap, 'highlight', 10, { asIs: true }));
+      var enjoyHtml = joinCompatItemsToCards(secretCompatListItems(secMap, 'enjoyTips', 10, { asIs: true }));
+      var cautionHtml = joinCompatItemsToCards(secretCompatListItems(secMap, 'caution', 10, { asIs: true }));
+
+      html += renderSecretCompatSec('01', '相性解説',
+        highlightHtml ? '<div class="desc-card">' + highlightHtml + '</div>' : '',
+      );
+      html += renderSecretCompatSec('02', '一緒に楽しむコツ',
+        enjoyHtml ? enjoyHtml : '',
+      );
+      html += renderSecretCompatSec('03', '摩擦ポイント',
+        cautionHtml ? cautionHtml : '',
+      );
+
+      return html;
+    }
+
+    // 従来のフォールバック
+    var planRecoItems = secretCompatListItems(secMap, 'plans', 3);
+    var goodItems = secretCompatListItems(secMap, 'togetherGood', 3);
+    var cautionItems = secretCompatListItems(secMap, 'togetherBad', 3);
+    var inviteItems = secretCompatListItems(secMap, 'invite', 3, { positiveOnly: true });
+
+    var recoPara = joinCompatItemsToPara(planRecoItems);
+    if (!recoPara) recoPara = joinCompatItemsToPara(goodItems);
+    var cautionPara = joinCompatItemsToPara(cautionItems);
+    var actionPara = joinCompatItemsToPara(inviteItems);
+
+    html += renderSecretCompatSec('01', '相性解説',
+      recoPara ? '<div class="desc-card"><p>' + escapeHtml(replaceTypeCodes(recoPara)) + '</p></div>' : '',
+    );
+    html += renderSecretCompatSec('02', '一緒に楽しむコツ',
+      cautionPara ? '<div class="desc-card"><p>' + escapeHtml(replaceTypeCodes(cautionPara)) + '</p></div>' : '',
+    );
+    html += renderSecretCompatSec('03', '摩擦ポイント',
+      actionPara ? '<div class="desc-card"><p>' + escapeHtml(replaceTypeCodes(actionPara)) + '</p></div>' : '',
+    );
+    return html;
+  }
+
+  /** @returns {{ label: string, cls: string }|null} */
+  /** 資料同期されたセクションがあるか（空オブジェクトのみは未同期扱い） */
+  function hasStructuredSecretCompat(pairDetail) {
+    if (!pairDetail) return false;
+    var secKeys = pairDetail.sections && typeof pairDetail.sections === 'object'
+      ? Object.keys(pairDetail.sections)
+      : [];
+    var extraLen = pairDetail.extraSections && pairDetail.extraSections.length;
+    return secKeys.length > 0 || !!extraLen;
+  }
+
+  function buildSecretCompatibilitySameDiffBuckets(myCode, otherCode) {
     var same = [];
     var diff = [];
     for (var i = 0; i < 4; i += 1) {
@@ -982,13 +1259,45 @@
         diff.push(mine.desc + ' ⇄ ' + theirs.desc);
       }
     }
+    return { same: same, diff: diff, matchCount: same.length };
+  }
 
-    var listed = findListedCompatibility(myType, otherCode);
-    var matchCount = same.length;
-    var label = listed ? listed.label : (
-      matchCount >= 3 ? '相性◎' : (matchCount === 2 ? '相性○' : (matchCount === 1 ? '補完型' : '正反対'))
-    );
-    var labelClass = listed ? listed.cls : (matchCount >= 2 ? 'pill--good' : 'pill--care');
+  function getSecretCompatDiffAxes(myCode, otherCode) {
+    var axes = [];
+    for (var i = 0; i < 4; i += 1) {
+      if (myCode.charAt(i) !== otherCode.charAt(i)) axes.push(i + 1);
+    }
+    return axes;
+  }
+
+  function secretCompatTier(label, cls) {
+    return { label: label, cls: cls };
+  }
+
+  function judgeSecretCompatibilityTier(myCode, otherCode) {
+    var diffAxes = getSecretCompatDiffAxes(myCode, otherCode);
+    if (diffAxes.length === 0) return secretCompatTier('安定コンビ', 'pill--neutral');
+
+    if (diffAxes.length === 1) {
+      var only = diffAxes[0];
+      if (only === 1 || only === 3) return secretCompatTier('最強タッグ', 'pill--good');
+      if (only === 2) return secretCompatTier('安定コンビ', 'pill--neutral');
+      return secretCompatTier('補い合い', 'pill--complement');
+    }
+
+    var hasStructureDiff = diffAxes.indexOf(2) !== -1;
+    var hasIntensityDiff = diffAxes.indexOf(4) !== -1;
+    if (diffAxes.length === 4 || (hasStructureDiff && hasIntensityDiff)) {
+      return secretCompatTier('真反対ペア', 'pill--care');
+    }
+
+    return secretCompatTier('補い合い', 'pill--complement');
+  }
+
+  /** 一覧・資料に無いときの短文（本文のみヒューリスティック） */
+  function buildCompatFallbackLeadAndPill(myType, listed, buckets, tier) {
+    var matchCount = buckets.matchCount;
+    var resolvedTier = tier || secretCompatTier('安定コンビ', 'pill--neutral');
     var lead = listed
       ? listed.reason
       : (
@@ -1000,24 +1309,90 @@
               ? '運動への入り方が大きく違うぶん、相手の得意さが自分の盲点を補ってくれる相性です。最初に強度・頻度・目的をすり合わせるのがコツです。'
               : '4軸すべてが反対の、かなり刺激が強い組み合わせです。無理に同じメニューをやるより、別々の得意を尊重して合流ポイントを作ると関係が崩れにくくなります。'
       );
+    return { label: resolvedTier.label, cls: resolvedTier.cls, lead: lead };
+  }
 
+  function buildSecretCompatibilityDetailHtml(myCode, otherCode) {
+    var myType = TYPES()[myCode];
+    var otherType = TYPES()[otherCode];
+    var otherChar = CHARS()[otherCode];
+    if (!myType || !otherType || !otherChar) return '';
+
+    var buckets = buildSecretCompatibilitySameDiffBuckets(myCode, otherCode);
+    var listed = findListedCompatibility(myType, otherCode);
+    var pairDetail = getSecretCompatPairDetail(myCode, otherCode);
+    var tier = judgeSecretCompatibilityTier(myCode, otherCode);
+
+    /** ヒーロー（共通） */
+    function heroMarkup(pillLabel, pillCls) {
+      return (
+        '<div class="secret-compat-detail">' +
+          '<div class="secret-compat-detail__hero">' +
+            '<span class="pill ' + pillCls + '">' + escapeHtml(pillLabel) + '</span>' +
+            '<div class="secret-compat-detail__hero-row">' +
+              '<div class="secret-compat-detail__char" style="background:' + safeCssColor(otherChar.tint, '#FFE9C2') + '">' +
+                charImgFullHtml(otherCode) +
+              '</div>' +
+              '<div class="secret-compat-detail__hero-text">' +
+                '<div class="secret-compat-detail__name">' + escapeHtml(otherType.type_name) + '</div>' +
+                '<div class="secret-compat-detail__code">' + escapeHtml(myCode) + ' × ' + escapeHtml(otherCode) + '</div>' +
+              '</div>' +
+            '</div>' +
+          '</div>'
+      );
+    }
+
+    /** 自分自身 */
+    if (otherCode === myCode) {
+      var hp = heroMarkup(tier.label, tier.cls);
+      return (
+        hp +
+        '<div class="secret-compat-detail__sections">' +
+          renderSecretCompatAxisCompare(myCode, otherCode) +
+          renderSecretCompatSec('', '同じアニマルタイプ',
+            '<div class="desc-card"><p>' +
+              escapeHtml('同じ運動アニマル同士なので、運動への入り方や心地よいペースはかなり近い組み合わせです。細かな好みは人によって違いますが、無理に説明しなくても感覚が通じやすい関係になりやすいです。') +
+            '</p></div>',
+          ) +
+        '</div>' +
+        '</div>'
+      );
+    }
+
+    /** 構造化コンテンツ（1対15 MD 同期）優先 */
+    if (pairDetail && hasStructuredSecretCompat(pairDetail)) {
+      var secMap = pairDetail.sections || {};
+      var fb = buildCompatFallbackLeadAndPill(myType, listed, buckets, tier);
+
+      var bodyFromCanon = buildSecretCompatCompactSections(secMap, myCode, otherCode);
+
+      if (!bodyFromCanon) {
+        bodyFromCanon =
+          renderSecretCompatAxisCompare(myCode, otherCode) +
+          renderSecretCompatSec('01', '相性の見立て',
+            '<div class="desc-card"><p>' + escapeHtml(replaceTypeCodes(fb.lead)) + '</p></div>',
+          );
+      }
+
+      return (
+        heroMarkup(tier.label, tier.cls) +
+        '<div class="secret-compat-detail__sections">' +
+          bodyFromCanon +
+        '</div>' +
+        '</div>'
+      );
+    }
+
+    /** 一覧データ・資料が無い／未整備ペアへのフォールバック */
+    var fb2 = buildCompatFallbackLeadAndPill(myType, listed, buckets, tier);
     return (
-      '<div class="secret-compat-detail">' +
-        '<div class="secret-compat-detail__hero">' +
-          '<span class="pill ' + labelClass + '">' + escapeHtml(label) + '</span>' +
-          '<div class="secret-compat-detail__char" style="background:' + safeCssColor(otherChar.tint, '#FFE9C2') + '">' +
-            charImgFullHtml(otherCode) +
-          '</div>' +
-          '<div>' +
-            '<div class="secret-compat-detail__name">' + escapeHtml(otherType.type_name) + '（' + escapeHtml(otherChar.animal) + '）</div>' +
-            '<div class="secret-compat-detail__code">' + escapeHtml(myCode) + ' × ' + escapeHtml(otherCode) + '</div>' +
-          '</div>' +
-        '</div>' +
-        '<p class="secret-compat-detail__lead">' + escapeHtml(replaceTypeCodes(lead)) + '</p>' +
-        '<div class="secret-compat-detail__meta">' +
-          '<div><b>似ているところ</b><span>' + escapeHtml(same.length ? same.join(' / ') : 'なし') + '</span></div>' +
-          '<div><b>違うところ</b><span>' + escapeHtml(diff.length ? diff.join(' / ') : 'なし') + '</span></div>' +
-        '</div>' +
+      heroMarkup(fb2.label, fb2.cls) +
+      '<div class="secret-compat-detail__sections">' +
+        renderSecretCompatAxisCompare(myCode, otherCode) +
+        renderSecretCompatSec('01', '相性の見立て',
+          '<div class="desc-card"><p>' + escapeHtml(replaceTypeCodes(fb2.lead)) + '</p></div>',
+        ) +
+      '</div>' +
       '</div>'
     );
   }
@@ -1056,7 +1431,8 @@
           '<div class="secret-compat-page__char" style="background:' + safeCssColor(myChar.tint, '#FFE9C2') + '">' +
             charImgFullHtml(myCode) +
           '</div>' +
-          '<div>' +
+          '<div style="--picker-code-active:' + tintToPickerActiveCodeHex(myChar.tint) + '">' +
+            '<span class="secret-compat-page__code">' + escapeHtml(myCode) + '</span>' +
             '<h1 class="secret-compat-page__title">' + escapeHtml(myType.type_name) + '</h1>' +
             '<p class="secret-compat-page__text">気になる仲間と一緒に運動しよう！</p>' +
           '</div>' +
@@ -1072,8 +1448,624 @@
         '<div class="secret-compat__badge">SECRET UNLOCKED</div>' +
         '<h3 class="secret-compat__title">他のアニマルとの相性を見る</h3>' +
         '<p class="secret-compat__text">ボス限定機能。あなたと他の仲間たちの相性を詳しく見ることができます</p>' +
+        '<span class="secret-compat__tap-hint" aria-hidden="true">VIEW ALL&thinsp;→</span>' +
+        '<span class="sc-sparkle sc-sparkle--1" aria-hidden="true">\u2726</span>' +
+        '<span class="sc-sparkle sc-sparkle--2" aria-hidden="true">\u2727</span>' +
+        '<span class="sc-sparkle sc-sparkle--3" aria-hidden="true">\u2726</span>' +
       '</div>'
     );
+  }
+
+  // ── 運動スタイルマップ：二軸スコア ─────────────────────────────────────────────
+  // plan: -2(計画的) 〜 +2(突発的)  goal: -2(プロセス重視) 〜 +2(成果重視)
+  // F/P 軸を計画性の主軸、C/D 軸を高める志向の主軸として導出し M/V・S/G で微調整
+  var MOTION_FIT = {
+    SFMC: { plan:  1.5, goal: -1.5 }, // ナマケモノ  突発・プロセス
+    SFMD: { plan:  1.5, goal:  0.5 }, // コーギー    突発・やや成果
+    SFVC: { plan:  0.5, goal: -1.5 }, // タコ        中間・プロセス
+    SFVD: { plan:  0.5, goal:  0.5 }, // オオカミ    中間・やや成果
+    SPMC: { plan: -1.0, goal: -1.5 }, // ハムスター  計画・プロセス
+    SPMD: { plan: -1.0, goal:  0.5 }, // チーター    計画・成果
+    SPVC: { plan: -2.0, goal: -1.5 }, // ビーバー    強計画・プロセス
+    SPVD: { plan: -2.0, goal:  0.5 }, // シカ        強計画・やや成果
+    GFMC: { plan:  2.0, goal: -0.5 }, // ペンギン    突発・中間
+    GFMD: { plan:  2.0, goal:  1.5 }, // シマウマ    突発・成果
+    GFVC: { plan:  1.0, goal: -0.5 }, // フラミンゴ  やや突発・中間
+    GFVD: { plan:  1.0, goal:  1.5 }, // ワシ        やや突発・成果
+    GPMC: { plan: -0.5, goal: -0.5 }, // ゾウ        中間・中間
+    GPMD: { plan: -0.5, goal:  1.5 }, // ライオン    中間・成果
+    GPVC: { plan: -1.5, goal: -0.5 }, // シャチ      計画・中間
+    GPVD: { plan: -1.5, goal:  1.5 }, // ゴリラ      計画・成果
+  };
+
+  var MOTION_STYLE_TEXTS = {
+    SFMC: "「目的を持たないこと」が最大のモチベーションになります。ルールや縛りが一切ない自由な環境で、その日の気分や直感だけで動けるスタイルが最も輝きます。管理されることを嫌うため、記録や報告が不要な、完全に個人の感覚に委ねられた運動環境が理想的です。",
+    SFMD: "「常に新しい刺激があること」が原動力です。ルーティン化された環境よりも、毎回異なる景色や体験が得られる非日常的なシチュエーションでこそ本領を発揮します。自分のペースで自由に動きながら、好奇心を満たせるような冒険的な運動スタイルが合っています。",
+    SFVC: "「心と体の対話」を重んじるため、静かで落ち着いた環境が不可欠です。競争や他者の目を気にすることなく、自分の内側の感覚に深く没入できるパーソナルな空間で最もリラックスして動けます。激しい消費よりも、心身の調和を取り戻すような穏やかなスタイルが向いています。",
+    SFVD: "「自分の限界と向き合う孤独な時間」に強い価値を見出します。他人のペースに合わせる必要のない完全に独立した環境で、自身のスイッチが入った瞬間に爆発的な集中力を発揮できるスタイルが最適です。干渉されず、ただひたすらに自分を追い込める場を求めます。",
+    SPMC: "「生活の一部として溶け込むこと」が継続の鍵です。特別な準備や気合いを必要とせず、日常の延長線上で淡々とこなせる環境で最も安定します。外部からの過度な刺激や変化を避け、自分だけの静かなリズムを乱されずに守り続けられる運動スタイルが理想的です。",
+    SPMD: "「数値化された成長」が最大のエネルギー源です。過去の自分の記録という明確なターゲットが存在し、それを超えるためのプロセスを一人でストイックに組み立てられる環境が向いています。結果が客観的に測定でき、自己成長をダイレクトに実感できるスタイルが最適です。",
+    SPVC: "「確立された型を美しくなぞること」に深い充足感を覚えます。イレギュラーな事態が起きない、高度にコントロールされた予測可能な環境でこそ最も安心して動けます。決められた手順を乱されることなく、一人で丁寧に精度を高めていく職人的な運動スタイルが合っています。",
+    SPVD: "「完璧な計画と圧倒的な実行」を両立できる環境を求めます。妥協を許さない高い基準を自らに課し、それを一人で黙々とクリアしていく過程に美学を持っています。外部の甘えやノイズを完全に遮断し、自身の理想とする強度と精度を追求し続けられるスタイルが最適です。",
+    GFMC: "「誰かと感情を共有できること」が全ての始まりです。運動そのものの目的よりも、仲間とのコミュニケーションやその場の明るい空気感がモチベーションになります。プレッシャーや厳しいルールがなく、笑顔で会話しながら自然体で参加できるオープンな環境が最も輝きます。",
+    GFMD: "「非日常の熱狂と一体感」が最大の着火剤です。静かな日常のトレーニングよりも、イベントやフェスのような特別な高揚感がある場で爆発的なエネルギーを発揮します。仲間と共に新しい刺激に飛び込み、その場のノリと勢いで全力で楽しめるダイナミックなスタイルが合っています。",
+    GFVC: "「安心できる仲間との温かい時間」を何よりも大切にします。競争や評価のない、互いを思いやれる少人数の親密なコミュニティで最も自然に動けます。激しい運動で消費するよりも、信頼できる人たちと心を通わせながら、穏やかなペースで体を動かすスタイルが理想的です。",
+    GFVD: "「仲間の熱量に感化されること」で自身の限界を超えていきます。一人では出せない力も、本気で取り組む集団の中に身を置くことで自然と引き出されます。感情をぶつけ合い、互いの熱を共有しながら高め合えるような、エネルギーに満ちたエモーショナルな環境が最適です。",
+    GPMC: "「変わらない場所と仲間の存在」が継続の基盤になります。刺激的な変化よりも、毎週同じ顔ぶれで集まり、安定した関係性を築きながら運動できる環境に居心地の良さを感じます。チームの和を乱さず、長期的な視点で着実に歩みを進めていく穏やかなスタイルが向いています。",
+    GPMD: "「明確なビジョンとチームの勝利」が強力な原動力です。達成すべき目標が共有されており、仲間を巻き込んで戦略的にゴールへ向かう環境でこそリーダーシップを発揮します。単なる仲良し集団ではなく、結果を出すための機能的なチームで動くスタイルが最も輝きます。",
+    GPVC: "「仲間への責任と貢献」が自身の背中を押す最大の力になります。自分のためだけでなく、チームのルールや約束を守り、コミュニティを支える役割を担える環境で最も安定した力を発揮します。互いの信頼関係をベースに、決められたことを誠実にこなし続けるスタイルが合っています。",
+    GPVD: "「チーム全員での限界突破」に無上の喜びを感じます。高い目標に対し、妥協のないプロセスを仲間と共に熱く共有できる環境を求めます。単なる結果だけでなく、苦しい過程を全員で乗り越えるエモーショナルな体験を重視し、互いに厳しく求め合う強烈なスタイルが最適です。"
+  };
+
+  function buildMotionFitChart(code) {
+    var fit = MOTION_FIT[code];
+    if (!fit) return '';
+    var ch = CHARS()[code];
+    var tint = safeCssColor(ch && ch.tint, '#FFE9C2');
+    // スコア (-2〜+2) を 20-80% にクランプしてアイコンがチャート端に届かないようにする
+    var leftPct = Math.round(20 + (fit.plan + 2) / 4 * 60);
+    var topPct  = Math.round(20 + (2 - fit.goal) / 4 * 60);
+    // クランプ後の座標で吹き出し方向を判定
+    var dir = 'up';
+    if      (topPct  < 40) dir = 'down';
+    else if (topPct  > 60) dir = 'up';
+    else if (leftPct < 40) dir = 'right';
+    else if (leftPct > 60) dir = 'left';
+    var pinCls = 'motion-fit__pin motion-fit__pin--' + dir;
+    return (
+      '<div class="motion-fit">' +
+        '<div class="motion-fit__wrap">' +
+          '<span class="motion-fit__label motion-fit__label--col mf-top">' +
+            '<span class="motion-fit__label-text">成果重視</span>' +
+            '<span class="motion-fit__label-arr" aria-hidden="true">▲</span>' +
+          '</span>' +
+          '<div class="motion-fit__mid">' +
+            '<span class="motion-fit__label mf-left">計画的 ◀</span>' +
+            '<div class="motion-fit__chart">' +
+              '<div class="motion-fit__axis-h"></div>' +
+              '<div class="motion-fit__axis-v"></div>' +
+              '<div class="' + pinCls + '" style="left:' + leftPct + '%;top:' + topPct + '%;">' +
+                '<div class="motion-fit__pin-bubble" style="--bubble-bg:' + tint + '">ここだよ！</div>' +
+                '<div class="motion-fit__pin-char" style="background:' + tint + ';">' +
+                  charImgFullHtml(code) +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+            '<span class="motion-fit__label mf-right">▶ 突発的</span>' +
+          '</div>' +
+          '<span class="motion-fit__label motion-fit__label--col mf-bottom">' +
+            '<span class="motion-fit__label-arr" aria-hidden="true">▼</span>' +
+            '<span class="motion-fit__label-text">プロセス重視</span>' +
+          '</span>' +
+        '</div>' +
+        (MOTION_STYLE_TEXTS[code] ? '<div class="motion-fit__desc"><p>' + escapeHtml(MOTION_STYLE_TEXTS[code]) + '</p></div>' : '') +
+      '</div>'
+    );
+  }
+
+  // ── 運動プランカルーセル（得意／苦手：テキストから最大5枚、横スクロールでループ） ─
+  var MOTION_PLAN_COUNT = 5;
+
+  function distributeSlicesToBuckets(slices, bucketCount) {
+    var arr = slices.filter(function (s) { return String(s).trim().length; });
+    var n = arr.length;
+    var out = [];
+    var g;
+    var from;
+    var to;
+    if (!n) {
+      for (g = 0; g < bucketCount; g++) out.push('');
+      return out;
+    }
+    if (n < bucketCount) {
+      while (arr.length < bucketCount) arr.push(arr[arr.length % n]);
+      return arr.slice(0, bucketCount);
+    }
+    for (g = 0; g < bucketCount; g++) {
+      from = Math.floor((g * n) / bucketCount);
+      to = Math.floor(((g + 1) * n) / bucketCount);
+      out.push(arr.slice(from, to).join('。'));
+    }
+    return out;
+  }
+
+  function ensureTrailingPeriod(text) {
+    var s = String(text || '').trim();
+    if (!s.length) return '';
+    return /[。.!?！？]$/.test(s.slice(-1)) ? s : s + '。';
+  }
+
+  function deriveMotionPlanTitle(segmentNoPeriod) {
+    var s = String(segmentNoPeriod || '').trim().replace(/^、+|、+$/g, '');
+    if (!s.length) return 'プラン';
+    var checks = ['が自然に', 'がこのタイプ', 'は自然に', 'があり', 'を中心', 'のように'];
+    var i;
+    for (i = 0; i < checks.length; i++) {
+      var w = checks[i];
+      var ix = s.indexOf(w);
+      if (ix >= 6 && ix <= 48) return s.slice(0, ix).trim().slice(0, 42) || 'プラン';
+    }
+    var particles = [['が'], ['は'], ['を'], ['に']];
+    var bestIx = Infinity;
+    for (i = 0; i < particles.length; i++) {
+      var pj = particles[i][0];
+      ix = s.indexOf(pj);
+      if (ix >= 10 && ix <= 44 && ix < bestIx) bestIx = ix;
+    }
+    if (bestIx < Infinity && bestIx >= 10) return s.slice(0, bestIx).trim().slice(0, 42) || 'プラン';
+    var head = s.slice(0, 24).trim();
+    return s.length > 24 ? head + '…' : head || 'プラン';
+  }
+
+  function splitExerciseTextIntoPlans(fullText, count) {
+    count = count || MOTION_PLAN_COUNT;
+
+    function toPlans(bodies) {
+      bodies = bodies.map(function (b) {
+        return ensureTrailingPeriod(String(b || '').trim());
+      });
+      if (!bodies.length) bodies = ['—'];
+      while (bodies.length < count) bodies.push(bodies[bodies.length - 1]);
+      return bodies.slice(0, count).map(function (body) {
+        var np = body.replace(/。+$/, '').trim();
+        return { title: deriveMotionPlanTitle(np), body: body };
+      });
+    }
+
+    var raw = String(fullText || '').trim();
+    if (!raw.length) return toPlans(['—']);
+
+    var sentences = raw.replace(/。\s+/g, '。').replace(/。+$/, '').split('。').map(function (x) {
+      return x.trim();
+    }).filter(function (x) {
+      return x.length > 8;
+    });
+
+    if (sentences.length >= count) return toPlans(distributeSlicesToBuckets(sentences, count));
+    if (sentences.length > 1) {
+      var cycled = [];
+      var j = 0;
+      var jj;
+      for (jj = 0; jj < count; jj++) {
+        cycled.push(sentences[j % sentences.length]); j++;
+      }
+      return toPlans(cycled);
+    }
+
+    var one = sentences[0] || raw;
+    var bullets = one.split(/[・／]/).map(function (x) {
+      return x.trim();
+    }).filter(function (x) {
+      return x.length > 12;
+    });
+    if (bullets.length >= count) return toPlans(distributeSlicesToBuckets(bullets, count));
+
+    var commas = one.split('、').map(function (x) {
+      return x.trim();
+    }).filter(function (x) {
+      return x.length > 14;
+    });
+    if (commas.length >= count) return toPlans(distributeSlicesToBuckets(commas, count));
+    return toPlans(distributeSlicesToBuckets([one], count));
+  }
+
+  function buildMotionPlanSlidesHtml(plans, variant, passIndex) {
+    var slideMod = variant === 'care' ? ' motion-plan-slide--care' : ' motion-plan-slide--good';
+    var passAttr = typeof passIndex === 'number'
+      ? ' data-motion-loop-pass="' + passIndex + '"'
+      : '';
+    return plans.map(function (p, ixInPass) {
+      var activeClass = ixInPass === 0 ? ' is-active' : '';
+      return (
+        '<section class="motion-plan-slide' + slideMod + activeClass + '"' + passAttr +
+          ' data-motion-slide-ix="' + ixInPass + '"' +
+          ' aria-roledescription="slide"' +
+          ' aria-label="' + escapeHtml(p.short_title || p.title || '運動プラン') + '">' +
+          '<div class="motion-plan-slide__header">' +
+            '<h4 class="motion-plan-slide__main-title">' + escapeHtml(p.short_title || p.title || 'プラン') + '</h4>' +
+          '</div>' +
+          '<p class="motion-plan-slide__body">' + escapeHtml(p.body || '') + '</p>' +
+        '</section>'
+      );
+    }).join('');
+  }
+
+  function buildMotionPlanDotsSpans(planCount) {
+    var parts = ''; var di;
+    for (di = 0; di < planCount; di++) {
+      parts +=
+        '<span class="motion-plan-dot' +
+        (di === 0 ? ' is-active' : '') +
+        '" aria-hidden="true"' +
+        ' data-motion-dot="' + di + '"></span>';
+    }
+    return parts;
+  }
+
+  function buildMotionPlanBlock(pillClass, pillText, sectionTitle, fullText, variant, groupIx, explicitPlans) {
+    var gid = 'mpg' + String(groupIx);
+    // ブラウザのスクロール位置復元（History Scroll Restoration）によって
+    // 初期表示位置がずれるのを防ぐため、IDにランダムな文字列を付与する
+    var stripDomId = 'motion-plan-strip-' + gid + '-' + Math.floor(Math.random() * 1000000);
+    var plans = (explicitPlans && explicitPlans.length === MOTION_PLAN_COUNT)
+      ? explicitPlans
+      : splitExerciseTextIntoPlans(fullText, MOTION_PLAN_COUNT);
+    var ariaLbl = variant === 'care'
+      ? '苦手になりやすい運動プラン一覧'
+      : '向きやすい運動プラン一覧';
+    return (
+      '<div class="motion-plan-block motion-plan-block--' + variant + '"' +
+        ' data-motion-plan-root="' + gid + '" role="presentation">' +
+        '<div class="motion-plan-block__head">' +
+          '<span class="motion-suit-label ' + pillClass + '">' + escapeHtml(pillText) + '</span>' +
+        '</div>' +
+        '<div class="motion-plan-strip-outer">' +
+          '<button type="button" class="motion-plan-nav motion-plan-nav--prev"' +
+            ' aria-label="' + escapeHtml('前のプラン') +
+            '" aria-controls="' +
+            escapeHtml(stripDomId) +
+            '">‹</button>' +
+          '<div id="' +
+            escapeHtml(stripDomId) +
+          '" class="motion-plan-strip motion-plan-strip--loop" tabindex="-1"' +
+            ' data-motion-strip="' + gid + '"' +
+            ' role="region" aria-roledescription="carousel" aria-label="' + escapeHtml(ariaLbl) + '">' +
+            '<div class="motion-plan-strip__track">' +
+              buildMotionPlanSlidesHtml(plans, variant, 0) +
+              buildMotionPlanSlidesHtml(plans, variant, 1) +
+              buildMotionPlanSlidesHtml(plans, variant, 2) +
+            '</div>' +
+          '</div>' +
+          '<button type="button" class="motion-plan-nav motion-plan-nav--next"' +
+            ' aria-label="' + escapeHtml('次のプラン') +
+            '" aria-controls="' +
+            escapeHtml(stripDomId) +
+            '">›</button>' +
+        '</div>' +
+        '<div class="motion-plan-dots motion-plan-dots--' + variant + '">' +
+          buildMotionPlanDotsSpans(MOTION_PLAN_COUNT) +
+        '</div>' +
+      '</div>'
+    );
+  }
+
+  function updateMotionPlanDotsFromMotionIndex(strip, indexPass0) {
+    var root = strip.closest('[data-motion-plan-root]');
+    if (!root) return;
+    var dotsWrap = root.querySelector('.motion-plan-dots');
+    if (!dotsWrap) return;
+    var dots = dotsWrap.querySelectorAll('.motion-plan-dot');
+    var ix = indexPass0 % MOTION_PLAN_COUNT;
+    if (ix < 0) ix += MOTION_PLAN_COUNT;
+    dots.forEach(function (dotNode, nodeIx) {
+      dotNode.classList.toggle('is-active', nodeIx === ix);
+    });
+  }
+
+  /** 左右欠片（各約10px）。カード横幅は画面幅の約70%（キャルーセル幅に収まらないときは縮小）。 */
+  var MOTION_PLAN_CAROUSEL_PEEK = 10;
+
+  function readMotionCarouselGapPx(track) {
+    var gap = 14;
+    if (track && typeof getComputedStyle !== 'undefined') {
+      try {
+        var cs = getComputedStyle(track);
+        var g = parseFloat(cs.gap || cs.columnGap);
+        if (!isNaN(g)) gap = g;
+      } catch (_e) { /* ignore */ }
+    }
+    return gap;
+  }
+
+  function readMotionCarouselPadL(track) {
+    var p = track && typeof getComputedStyle !== 'undefined'
+      ? parseFloat(getComputedStyle(track).paddingLeft || '0')
+      : NaN;
+    return isNaN(p) ? 0 : p;
+  }
+
+  function readCarouselSlidePx(strip) {
+    var slidePx = parseFloat(strip.style.getPropertyValue('--motion-slide-w') || '300');
+    if (isNaN(slidePx) || slidePx < 48) slidePx = 300;
+    return slidePx;
+  }
+
+  /**
+   * pass0 の index ix がビューポ中央にくるときの strip.scrollLeft（整数）。
+   * 3コピー構成のまん中（copy1）を使うので stride を加算する。
+   * これにより scrollLeft = 0 でも左に copy0 が存在し、両側ピークが成立する。
+   *
+   * 証明: centerPad = (W-S)/2
+   *   centerPad + (stride + ix*(S+G)) + S/2 - W/2
+   *   = (W-S)/2 + stride + ix*(S+G) + S/2 - W/2
+   *   = stride + ix*(S+G)
+   */
+  function motionCarouselScrollLeftForPass0(strip, pass0Ix) {
+    var slidePx = readCarouselSlidePx(strip);
+    var track = strip.firstElementChild;
+    var gap = track ? readMotionCarouselGapPx(track) : 28;
+    var stride = MOTION_PLAN_COUNT * (slidePx + gap);
+    var ix = pass0Ix % MOTION_PLAN_COUNT;
+    if (ix < 0) ix += MOTION_PLAN_COUNT;
+    return stride + ix * (slidePx + gap);
+  }
+
+  /** 同一視覚の繰り返し周期（複製セット幅）。≈ MOTION_PLAN_COUNT * (S + gap)。 */
+  function motionCarouselStride(strip, track) {
+    var slidePx = readCarouselSlidePx(strip);
+    var gap = readMotionCarouselGapPx(track);
+    return MOTION_PLAN_COUNT * (slidePx + gap);
+  }
+
+  /** スクロール位置から pass0 のインデックスを推定。 */
+  function motionCarouselInferPass0Ix(strip, track) {
+    var W = strip.clientWidth;
+    var slidePx = readCarouselSlidePx(strip);
+    var gap = readMotionCarouselGapPx(track);
+    var padL = readMotionCarouselPadL(track);
+    var sl = strip.scrollLeft;
+    var stride = motionCarouselStride(strip, track);
+    if (!(stride > 56)) return 0;
+    var rel = sl + W / 2 - padL - slidePx / 2;
+    var shifted = ((rel % stride) + stride) % stride;
+    var j = Math.round(shifted / (slidePx + gap));
+    return ((j % MOTION_PLAN_COUNT) + MOTION_PLAN_COUNT) % MOTION_PLAN_COUNT;
+  }
+
+  /**
+   * 常に copy1 の領域 [stride, 2*stride) に正規化する。
+   * 3コピー構成なので左方向（copy0）・右方向（copy2）の両側に余裕がある。
+   */
+  function motionCarouselNormalizeStrideOnly(strip) {
+    var track = strip.firstElementChild;
+    if (!track) return;
+    var stride = motionCarouselStride(strip, track);
+    if (!(stride > 56)) return;
+    var ref0 = motionCarouselScrollLeftForPass0(strip, 0); /* = stride */
+    var tw = track.scrollWidth;
+    var maxSl = Math.max(0, tw - strip.clientWidth);
+    var sl = strip.scrollLeft;
+    /* copy2 以降 → stride 分引く */
+    while (sl >= ref0 + stride) sl -= stride;
+    /* copy0 側   → stride 分足す */
+    while (sl < ref0) sl += stride;
+    strip.scrollLeft = Math.max(0, Math.min(maxSl, sl));
+  }
+
+  function motionCarouselFinalizePosition(strip, pass0IxRaw) {
+    var track = strip.firstElementChild;
+    if (!track) return;
+    var ix =
+      typeof pass0IxRaw === 'number'
+        ? pass0IxRaw
+        : parseInt(strip.dataset.motionCarouselIndex || '0', 10);
+    ix = ((ix % MOTION_PLAN_COUNT) + MOTION_PLAN_COUNT) % MOTION_PLAN_COUNT;
+    strip.dataset.motionCarouselIndex = String(ix);
+    motionCarouselNormalizeStrideOnly(strip);
+    var tw = track.scrollWidth;
+    var maxSl = Math.max(0, tw - strip.clientWidth);
+    var tgt = motionCarouselScrollLeftForPass0(strip, ix);
+    strip.scrollLeft = Math.max(0, Math.min(maxSl, tgt));
+    updateMotionPlanDotsFromMotionIndex(strip, ix);
+  }
+
+  /** ロック中はインデックス推定のみ避けつつストライドのみ正規化。 */
+  function motionCarouselDotsFromInfer(strip) {
+    var track = strip.firstElementChild;
+    if (!track) return;
+    motionCarouselNormalizeStrideOnly(strip);
+    var inferred = motionCarouselInferPass0Ix(strip, track);
+    strip.dataset.motionCarouselIndex = String(inferred);
+    updateMotionPlanDotsFromMotionIndex(strip, inferred);
+  }
+
+  function syncMotionCarouselLayout(strip) {
+    var track = strip.firstElementChild;
+    if (!track) return;
+    var W = strip.clientWidth;
+    if (W < 72) return;
+    /* カード幅 = strip 幅の 77%。scrollLeft(ix=0) = 0 が保証される。 */
+    var slidePx = Math.max(160, Math.round(W * 0.77));
+    strip.style.setProperty('--motion-slide-w', slidePx + 'px');
+    /* centerPad = (W - slideW) / 2 → scrollLeft(0) = 0 の恒等式を満たす */
+    var centerPad = Math.round((W - slidePx) / 2);
+    track.style.paddingLeft = centerPad + 'px';
+    track.style.paddingRight = centerPad + 'px';
+    /* ボタン中心 = カードの左右端
+       btnW = 44px → offset = centerPad - btnW/2 */
+    var outer = strip.closest('.motion-plan-strip-outer');
+    if (outer) {
+      var btnHalf = 18;
+      var inset = Math.max(0, centerPad - btnHalf);
+      var prevBtn = outer.querySelector('.motion-plan-nav--prev');
+      var nextBtn = outer.querySelector('.motion-plan-nav--next');
+      if (prevBtn) prevBtn.style.left  = inset + 'px';
+      if (nextBtn) nextBtn.style.right = inset + 'px';
+    }
+  }
+
+  function bindMotionPlanStripLoops(container) {
+    if (!container || !container.querySelectorAll) return;
+    container.querySelectorAll('.motion-plan-strip--loop').forEach(function (strip) {
+      if (strip.dataset.motionLoopBound) return;
+      strip.dataset.motionLoopBound = '1';
+      strip.dataset.motionCarouselIndex = '0';
+      strip.dataset.motionCarouselLocked = '';
+      var rafBusy = false;
+      var finalizeTimer = null;
+      var animRafId = null;
+
+      /**
+       * rAF ベースの滑らかスクロール。
+       * easeInOutCubic で duration ms かけて strip.scrollLeft を animateTo まで動かす。
+       * 前のアニメーションがあればキャンセルしてから開始する。
+       */
+      function smoothScrollTo(targetLeft, durationMs, onComplete) {
+        if (animRafId !== null) {
+          cancelAnimationFrame(animRafId);
+          animRafId = null;
+        }
+        var startLeft = strip.scrollLeft;
+        var delta = targetLeft - startLeft;
+        var startTime = null;
+
+        function easeInOutCubic(t) {
+          return t < 0.5
+            ? 4 * t * t * t
+            : 1 - Math.pow(-2 * t + 2, 3) / 2;
+        }
+
+        function frame(timestamp) {
+          if (startTime === null) startTime = timestamp;
+          var elapsed = timestamp - startTime;
+          var progress = durationMs > 0 ? Math.min(elapsed / durationMs, 1) : 1;
+          strip.scrollLeft = startLeft + delta * easeInOutCubic(progress);
+          if (progress < 1) {
+            animRafId = requestAnimationFrame(frame);
+          } else {
+            strip.scrollLeft = targetLeft;
+            animRafId = null;
+            if (onComplete) onComplete();
+          }
+        }
+        animRafId = requestAnimationFrame(frame);
+      }
+
+      /**
+       * pass0 の ix に対応するすべてのスライドに is-active クラスを付け、
+       * 他のスライドは外す。3コピー全スライドを走査する。
+       */
+      function updateActiveSlide(ix) {
+        var track = strip.firstElementChild;
+        if (!track) return;
+        track.querySelectorAll('.motion-plan-slide').forEach(function (el) {
+          var pass = parseInt(el.dataset.motionSlideIx || '-1', 10);
+          el.classList.toggle('is-active', pass === ix);
+        });
+      }
+
+      function reflowStrip() {
+        syncMotionCarouselLayout(strip);
+        var ix = parseInt(strip.dataset.motionCarouselIndex || '0', 10);
+        motionCarouselFinalizePosition(strip, ix);
+      }
+
+      function scrollRaf() {
+        if (strip.dataset.motionCarouselLocked === '1') {
+          motionCarouselNormalizeStrideOnly(strip);
+          return;
+        }
+        motionCarouselDotsFromInfer(strip);
+      }
+
+      strip.addEventListener(
+        'scroll',
+        function () {
+          if (rafBusy) return;
+          rafBusy = true;
+          requestAnimationFrame(function () {
+            rafBusy = false;
+            scrollRaf();
+          });
+        },
+        { passive: true },
+      );
+
+      strip.addEventListener(
+        'scrollend',
+        function () {
+          if (strip.dataset.motionCarouselLocked === '1') return;
+          var tr = strip.firstElementChild;
+          if (!tr) return;
+          motionCarouselNormalizeStrideOnly(strip);
+          var ixInf = motionCarouselInferPass0Ix(strip, tr);
+          strip.dataset.motionCarouselIndex = String(ixInf);
+          motionCarouselFinalizePosition(strip, ixInf);
+        },
+        { passive: true },
+      );
+
+      var outer = strip.closest('.motion-plan-strip-outer');
+      var prevBtn = outer && outer.querySelector('.motion-plan-nav--prev');
+      var nextBtn = outer && outer.querySelector('.motion-plan-nav--next');
+
+      function stepCarousel(dir) {
+        syncMotionCarouselLayout(strip);
+        var track = strip.firstElementChild;
+        if (!track) return;
+        strip.dataset.motionCarouselLocked = '1';
+
+        var cur = parseInt(strip.dataset.motionCarouselIndex || '0', 10);
+        cur = ((cur % MOTION_PLAN_COUNT) + MOTION_PLAN_COUNT) % MOTION_PLAN_COUNT;
+        var nx = ((cur + dir) % MOTION_PLAN_COUNT + MOTION_PLAN_COUNT) % MOTION_PLAN_COUNT;
+        strip.dataset.motionCarouselIndex = String(nx);
+
+        var slidePx = readCarouselSlidePx(strip);
+        var gap = readMotionCarouselGapPx(track);
+        var step = slidePx + gap;
+        var tw = track.scrollWidth;
+        var maxSl = Math.max(0, tw - strip.clientWidth);
+
+        /*
+         * 3コピー構成（copy0 / copy1 / copy2）で常に copy1 を基準に動作する。
+         * 現在の scrollLeft から ±step だけスクロールするだけでよい。
+         * 左端 (copy1 card0) から左へ → copy0 card4 が見える（ループ演出）
+         * 右端 (copy1 card4) から右へ → copy2 card0 が見える（ループ演出）
+         * アニメ完了後に normalize で copy1 に戻す。
+         */
+        var animateTo = Math.max(0, Math.min(maxSl, strip.scrollLeft + dir * step));
+
+        updateActiveSlide(nx);
+
+        window.clearTimeout(finalizeTimer);
+        finalizeTimer = null;
+
+        smoothScrollTo(animateTo, 380, function () {
+          strip.dataset.motionCarouselLocked = '';
+          syncMotionCarouselLayout(strip);
+          motionCarouselFinalizePosition(strip, nx);
+          updateActiveSlide(nx);
+        });
+      }
+
+      if (prevBtn) {
+        prevBtn.addEventListener('click', function () {
+          stepCarousel(-1);
+        });
+      }
+      if (nextBtn) {
+        nextBtn.addEventListener('click', function () {
+          stepCarousel(1);
+        });
+      }
+
+      syncMotionCarouselLayout(strip);
+
+      if (typeof ResizeObserver !== 'undefined') {
+        var ro = new ResizeObserver(function () {
+          reflowStrip();
+        });
+        ro.observe(strip);
+      }
+      if (typeof window !== 'undefined') {
+        window.addEventListener(
+          'resize',
+          function () {
+            reflowStrip();
+          },
+          { passive: true },
+        );
+      }
+      if (typeof window !== 'undefined' && window.visualViewport) {
+        window.visualViewport.addEventListener('resize', reflowStrip);
+        window.visualViewport.addEventListener('scroll', reflowStrip);
+      }
+
+      requestAnimationFrame(function () {
+        reflowStrip();
+        requestAnimationFrame(reflowStrip);
+      });
+    });
   }
 
   // ── 結果セクション全体 ────────────────────────────────────────────────────────
@@ -1089,9 +2081,12 @@
       '</div>';
     }
     function textCard(innerTitle, text) {
+      var paragraphs = String(text || '').split(/\n+/).filter(function(s) { return s.trim(); }).map(function(s) {
+        return '<p>' + escapeHtml(s) + '</p>';
+      }).join('');
       return '<div class="desc-card">' +
         (innerTitle ? '<h4 class="desc-card__title">' + escapeHtml(innerTitle) + '</h4>' : '') +
-        '<p>' + escapeHtml(text) + '</p>' +
+        paragraphs +
       '</div>';
     }
 
@@ -1099,18 +2094,25 @@
     var goodItems = compat.good || [];
     var badItems  = compat.bad  || [];
     var compatInner = '';
-    if (goodItems.length) compatInner += compatCard(goodItems[0], 'pill--good', '相性◎');
-    if (badItems.length)  compatInner += compatCard(badItems[0],  'pill--care', '要注意');
+    if (goodItems.length) compatInner += compatCard(goodItems[0], 'pill--good', '最強タッグ');
+    if (badItems.length)  compatInner += compatCard(badItems[0],  'pill--care', '真反対ペア');
     var compatSection = compatInner
-      ? '<div class="sec"><div class="sec__head"><span class="num">06</span><h3>アニマル相性</h3><span class="deco"></span></div><div class="compat">' + compatInner + '</div></div>'
+      ? '<div class="sec"><div class="sec__head"><span class="num">05</span><h3>アニマル相性</h3><span class="deco"></span></div><div class="compat">' + compatInner + '</div></div>'
       : '';
+
+    // 運動チャートと解説を一つのカードにまとめる
+    var motionBody =
+      buildMotionFitChart(t.code) +
+      '<div class="motion-plan-stack">' +
+        buildMotionPlanBlock('motion-suit-label--good', '向いている運動', t.suit_title, t.suit_text, 'good', 0, t.suit_plans) +
+        buildMotionPlanBlock('motion-suit-label--care', '向いていない運動', t.unsuited_title, t.unsuited_text, 'care', 1, t.unsuited_plans) +
+      '</div>';
 
     return (
       sec(1, '4軸プロフィール', axisHtml) +
-      sec(2, 'あなたのアニマルタイプ', textCard(t.concept_title,      t.concept)) +
-      sec(3, 'おすすめの運動',     textCard(t.suit_title,         t.suit_text)) +
-      sec(4, '苦手な運動',         textCard(t.unsuited_title,     t.unsuited_text)) +
-      sec(5, '続けるコツ',         textCard(t.continuation_title, t.continuation_text)) +
+      sec(2, 'あなたのタイプ', textCard(t.concept_title, t.concept)) +
+      sec(3, '運動スタイル', motionBody) +
+      sec(4, '続けるコツ',         textCard(t.continuation_title, t.continuation_text)) +
       compatSection +
       (compatSection && t.code && isSecretCompatibilityUnlocked()
         ? buildSecretCompatibilityCtaHtml(t.code)
@@ -1686,6 +2688,9 @@
     var tint = safeCssColor(c && c.tint, '#FFE9C2');
 
     function secText(num, label, innerTitle, text) {
+      var paragraphs = String(text || '').split(/\n+/).filter(function(s) { return s.trim(); }).map(function(s) {
+        return '<p>' + escapeHtml(s) + '</p>';
+      }).join('');
       return (
         '<div class="sec">' +
           '<div class="sec__head">' +
@@ -1695,7 +2700,7 @@
           '</div>' +
           '<div class="desc-card">' +
             (innerTitle ? '<h4 class="desc-card__title">' + escapeHtml(innerTitle) + '</h4>' : '') +
-            '<p>' + escapeHtml(text) + '</p>' +
+            paragraphs +
           '</div>' +
         '</div>'
       );
@@ -1705,14 +2710,18 @@
     var goodItems = compat.good || [];
     var badItems  = compat.bad  || [];
     var compatInner = '';
-    if (goodItems.length) compatInner += compatCard(goodItems[0], 'pill--good', '相性◎');
-    if (badItems.length)  compatInner += compatCard(badItems[0],  'pill--care', '要注意');
+    if (goodItems.length) compatInner += compatCard(goodItems[0], 'pill--good', '最強タッグ');
+    if (badItems.length)  compatInner += compatCard(badItems[0],  'pill--care', '真反対ペア');
     var compatHtml = compatInner
       ? '<div class="sec">' +
-          '<div class="sec__head"><span class="num">05</span><h3>アニマル相性</h3><span class="deco"></span></div>' +
+          '<div class="sec__head"><span class="num">04</span><h3>アニマル相性</h3><span class="deco"></span></div>' +
           '<div class="compat">' + compatInner + '</div>' +
         '</div>'
       : '';
+
+    function secPlans(num, label, plans) {
+      return ''; // 削除
+    }
 
     return (
       '<div class="modal-type-hero" style="background:' + tint + '">' +
@@ -1721,10 +2730,16 @@
         '<h2 class="modal-type-name">' + escapeHtml(t.type_name) + '</h2>' +
         '<p class="modal-type-tag">' + escapeHtml(t.tagline) + '</p>' +
       '</div>' +
-      secText(1, 'あなたのアニマルタイプ', t.concept_title,      t.concept) +
-      secText(2, 'おすすめの運動',     t.suit_title,         t.suit_text) +
-      secText(3, '苦手な運動',         t.unsuited_title,     t.unsuited_text) +
-      secText(4, '続けるコツ',         t.continuation_title, t.continuation_text) +
+      secText(1, 'あなたのタイプ', t.concept_title,      t.concept) +
+      '<div class="sec">' +
+        '<div class="sec__head">' +
+          '<span class="num">02</span>' +
+          '<h3>運動スタイル</h3>' +
+          '<span class="deco"></span>' +
+        '</div>' +
+        buildMotionFitChart(code || t.code) +
+      '</div>' +
+      secText(3, '続けるコツ',         t.continuation_title, t.continuation_text) +
       compatHtml
     );
   }
@@ -1862,6 +2877,8 @@
 
     el.resultSections.innerHTML = buildTypeSections(t, axisHtml);
 
+    bindMotionPlanStripLoops(el.resultSections);
+
     // バーのアニメーション（少し遅延してwidth適用／サンプル表示時も同一）
     requestAnimationFrame(function () {
       requestAnimationFrame(function () {
@@ -1935,9 +2952,46 @@
     if (!el.resultSections || !state.lastCode || !TYPES()[state.lastCode]) return;
     if (!isSecretCompatibilityUnlocked()) return;
     if (document.getElementById('secretCompatibility')) return;
+
+    // variant 1・2 からここに来た場合もロック（variant=3 は celebration 開始時から locked 済み）
+    lockInteraction();
+
+    // カードを resultSections に追加（通常フロー: body 移動しない）
     var wrapper = document.createElement('div');
     wrapper.innerHTML = buildSecretCompatibilityCtaHtml(state.lastCode);
-    if (wrapper.firstElementChild) el.resultSections.appendChild(wrapper.firstElementChild);
+    var newNode = wrapper.firstElementChild;
+    if (!newNode) { unlockInteraction(); return; }
+    newNode.classList.add('secret-compat--intro');
+    el.resultSections.appendChild(newNode);
+
+    // sc-intro-phase クラス → CSS で非カード要素を opacity:0 で隠す
+    // カード自身は sc-intro-lifted の box-shadow:9999px で周囲全体を暗転させる
+    document.body.classList.add('sc-intro-phase');
+    newNode.classList.add('sc-intro-lifted');
+
+    // 透明ポインターブロッカー（interactionBlocker と合わせて二重ブロック）
+    var scOverlay = document.createElement('div');
+    scOverlay.className = 'sc-intro-overlay';
+    scOverlay.id = 'scIntroOverlay';
+    document.body.appendChild(scOverlay);
+
+    // ゆっくりスクロールでカードを viewport 中央へ（1400ms の ease-in-out）
+    setTimeout(function () {
+      var rect = newNode.getBoundingClientRect();
+      var cardCenterY = rect.top + rect.height / 2;
+      var targetY = window.scrollY + cardCenterY - window.innerHeight / 2;
+      slowScrollTo(targetY, 1400);
+    }, 80);
+
+    // 3100ms 後にスポットライト解除
+    setTimeout(function () {
+      var ol = document.getElementById('scIntroOverlay');
+      if (ol && ol.parentNode) ol.parentNode.removeChild(ol);
+      document.body.classList.remove('sc-intro-phase');
+      var card = document.getElementById('secretCompatibility');
+      if (card) card.classList.remove('sc-intro-lifted');
+      unlockInteraction();
+    }, 3100);
   }
 
   // ── ウェルカム画面初期化 ─────────────────────────────────────────────────────
@@ -1991,12 +3045,12 @@
     var charEl = document.getElementById('companionChar');
     if (charEl) {
       charEl.style.background = '#FFF6CB';
-      charEl.innerHTML = charImgHtml('SPAC');
+      charEl.innerHTML = charImgHtml('SPMC');
     }
     // 質問カードのキャラ (ナマケモノ固定)
     var quizChar = document.getElementById('quizChar');
     if (quizChar) {
-      quizChar.innerHTML = charImgHtml('SFAC');
+      quizChar.innerHTML = charImgHtml('SFMC');
     }
   }
 
@@ -2021,8 +3075,9 @@
     if (r.view !== 'typeDetail') unlockPageScroll();
 
     if (r.view === 'welcome')    { showScreen('welcome'); return; }
-    if (r.view === 'types')      { showScreen('types', { preserveScroll: state.screen === 'types' }); return; }
+    if (r.view === 'types')      { updateTypesGoTopLabel(); showScreen('types', { preserveScroll: state.screen === 'types' }); return; }
     if (r.view === 'typeDetail') {
+      updateTypesGoTopLabel();
       showScreen('types', { preserveScroll: state.screen === 'types' });
       if (TYPES()[r.code]) renderTypeModal(r.code);
       return;
@@ -2114,11 +3169,18 @@
     showScreen('welcome');
   }
 
+  function updateTypesGoTopLabel() {
+    var btn = document.getElementById('typesGoTop');
+    if (!btn) return;
+    btn.textContent = state.typesReturnParent === 'result' ? '診断結果に戻る' : '最初の画面へ';
+  }
+
   /** @param {'welcome'|'result'} parent */
   function openTypesList(parent) {
     state.typesReturnParent = parent === 'result' ? 'result' : 'welcome';
     persistTypesReturnParent();
     if (state.typesReturnParent === 'result' && state.lastCode) unlockType(state.lastCode);
+    updateTypesGoTopLabel();
     renderTypesGrid();
     setHash('/types');
     applyRoute();
@@ -2167,7 +3229,7 @@
 
   // タイプ一覧
   document.getElementById('typesBack').addEventListener('click', goTypesBack);
-  document.getElementById('typesGoTop').addEventListener('click', goWelcome);
+  document.getElementById('typesGoTop').addEventListener('click', goTypesBack);
 
   // クイズ
   if (el.qBackBottom) {
@@ -2357,8 +3419,8 @@
   };
   var SHARE_CELEBRATION_MESSAGES = {
     1: '仲間たちが喜ぶ！！',
-    2: '仲間たちが震えて喜ぶ！！',
-    3: '仲間たちのボスになる！？',
+    2: '仲間たちがビビる！？',
+    3: '本当の仲間になる！！',
   };
 
   function normalizeShareTier(v) {
@@ -2546,13 +3608,44 @@
     if (highlightStep) highlightStep.textContent = getShareStepHighlight(currentShareChannel);
     setShareDialogActionButton(actionMode);
     var dismissBtn = document.getElementById('instagramShareDismiss');
-    if (dismissBtn) dismissBtn.hidden = actionMode === 'initial';
+    if (dismissBtn) dismissBtn.hidden = false; // 常に表示するよう変更（ユーザー要望）
     if (dialog) dialog.hidden = false;
   }
 
   function closeShareSaveDialog() {
     var dialog = document.getElementById('instagramShareDialog');
     if (dialog) dialog.hidden = true;
+  }
+
+  function showSecretUnlockedModal() {
+    var bg = document.createElement('div');
+    bg.className = 'modal-bg';
+    bg.id = 'secretUnlockedModal';
+    // interactionBlocker(z-index:9999) より上に出て、かつ確認ボタンだけ操作可能にする
+    bg.style.cssText = 'z-index:10000;pointer-events:all;';
+    bg.innerHTML =
+      '<div class="modal">' +
+        '<div class="modal__icon" style="background:#FFD63F;box-shadow:0 6px 0 0 #DDB31E;color:var(--ink);display:flex;align-items:center;justify-content:center;">' +
+        '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg>' +
+        '</div>' +
+        '<h2 style="font-family:\'Bebas Neue\',var(--font-en),sans-serif;font-size:28px;letter-spacing:0.14em;font-weight:400;">SECRET UNLOCKED</h2>' +
+        '<p style="font-weight:600;">全１６アニマルとの相性チェックが解放されました。<br />各アニマルとの運動スタイルのマッチ度・すれ違いポイントを詳しく確認できます。</p>' +
+        '<div class="modal__actions">' +
+          '<button class="btn btn--primary" id="secretUnlockedConfirm" style="position:relative;z-index:10001;">\u76f8\u6027\u3092\u78ba\u8a8d\u3059\u308b <span class="arrow">\u2192</span></button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(bg);
+
+    function closeModal() {
+      if (bg.parentNode) bg.parentNode.removeChild(bg);
+      // unlockInteraction はスポットライト終了時まで呼ばない
+      refreshSecretCompatibilityUnlock();
+    }
+    var confirmBtn = document.getElementById('secretUnlockedConfirm');
+    if (confirmBtn) {
+      confirmBtn.addEventListener('click', closeModal);
+      confirmBtn.focus();
+    }
   }
 
   function showAnimalCelebration(variant) {
@@ -2651,14 +3744,25 @@
     });
 
     document.body.appendChild(root);
+    lockInteraction(); // 全バリアント共通：アニメーション開始と同時に全操作ロック
+    if (celebrationVariant === 3) {
+      document.body.classList.add('celebration-locked');
+    }
     // キャラ・文字が約3秒で出そろった後、維持してまとめてフェードアウト。
-    var leaveDelay = celebrationVariant === 3 ? 6500 : 4500;
-    var removeDelay = celebrationVariant === 3 ? 7300 : 5300;
+    var leaveDelay = celebrationVariant === 3 ? 6500 : (celebrationVariant === 2 ? 5500 : 4500);
+    var removeDelay = celebrationVariant === 3 ? 7300 : (celebrationVariant === 2 ? 6300 : 5300);
     setTimeout(function () {
       root.classList.add('is-leaving');
     }, leaveDelay);
     setTimeout(function () {
       if (root.parentNode) root.parentNode.removeChild(root);
+      if (celebrationVariant === 3) {
+        document.body.classList.remove('celebration-locked');
+        // lockInteraction は解除しない（モーダル〜スポットライト中も継続ロック）
+        showSecretUnlockedModal();
+      } else {
+        unlockInteraction(); // variant 1/2 はアニメーション終了でロック解除
+      }
     }, removeDelay);
   }
 
@@ -2689,7 +3793,7 @@
 
   function getShareCompletionCount(p) {
     var progress = finalizeShareProgress(p);
-    return Math.max(progress.total || 0, countDistinctShareTiers(progress));
+    return countDistinctShareTiers(progress);
   }
 
   /** モーダル3行目: 初回ユニーク成功で順位が確定して固定され、未達成は現在の順位プレビュー。 */
@@ -2737,8 +3841,11 @@
         return copyShareUrlOnly().then(function () {
           var variant = recordShareDownloadSuccess(currentShareChannel);
           if (shouldClose) closeShareSaveDialog();
-          refreshSecretCompatibilityUnlock();
           showAnimalCelebration(variant);
+          if (normalizeShareTier(variant) !== 3) {
+            var celebDelay = normalizeShareTier(variant) === 2 ? 6300 : 5300;
+            setTimeout(function() { refreshSecretCompatibilityUnlock(); }, celebDelay);
+          }
         });
       })
       .catch(function () {
@@ -2753,8 +3860,11 @@
       .then(function () {
         var variant = recordShareDownloadSuccess(currentShareChannel);
         closeShareSaveDialog();
-        refreshSecretCompatibilityUnlock();
         showAnimalCelebration(variant);
+        if (normalizeShareTier(variant) !== 3) {
+          var celebDelay = normalizeShareTier(variant) === 2 ? 6300 : 5300;
+          setTimeout(function() { refreshSecretCompatibilityUnlock(); }, celebDelay);
+        }
       })
       .finally(restore);
   }

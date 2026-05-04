@@ -65,24 +65,34 @@
 
 /* ---------- Pill / Tag ---------- */
 .pill {
-  display: inline-flex; align-items: center; gap: 6px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  box-sizing: border-box;
+  /* 文言は最大5文字（例: 最強タッグ・真反対ペア）。全ピル同一幅で揃える */
+  width: calc(28px + 6em);
+  min-width: calc(28px + 6em);
+  flex-shrink: 0;
   padding: 6px 14px;
   border-radius: var(--r-pill);
+  border: 1.5px solid var(--ink);
   font-size: var(--t-tiny);
   font-weight: 800;
   letter-spacing: 0.08em;
-  background: var(--cream);
+  background: transparent;
   color: var(--ink);
 }
-.pill--red    { background: var(--red); color: #fff; }
-.pill--yellow { background: var(--yellow); color: var(--ink); }
-.pill--blue   { background: var(--blue); color: #fff; }
-.pill--green  { background: var(--green); color: #fff; }
-.pill--pink   { background: var(--pink); color: #fff; }
-.pill--mint   { background: var(--mint); color: #2B7A4F; }
-.pill--lilac  { background: var(--lilac); color: #5A3FB0; }
-.pill--sky    { background: var(--sky); color: #235E8E; }
-.pill--ink    { background: var(--ink); color: #fff; }
+/* 色相バリアントも見た目は統一（枠線＋黒系文字のアウトラインタグ） */
+.pill--red,
+.pill--yellow,
+.pill--blue,
+.pill--green,
+.pill--pink,
+.pill--mint,
+.pill--lilac,
+.pill--sky,
+.pill--ink {
+  background: transparent;
+  color: var(--ink);
+}
 
 /* ---------- Card ---------- */
 .card {
@@ -143,5 +153,4 @@
 .tcard__visual svg {
   width: 82%; height: 82%; object-fit: contain;
 }
-.tcard__title { text-align: center; font-family: var(--font-jp); font-size: 10px; letter-spacing: 0; color: var(--ink-mute); margin: 6px 0 2px; font-weight: 600; line-height: 1.4; }
-.tcard__name  { text-align: center; font-family: var(--font-jp); font-weight: 900; font-size: 17px; letter-spacing: 0.02em; color: var(--ink); }
+.tcard__name  { text-align: center; font-family: var(--font-jp); font-weight: 900; font-size: 14px; letter-spacing: 0.02em; color: var(--ink); }

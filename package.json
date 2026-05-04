@@ -1,5 +1,13 @@
 {
+  "name": "exercise-type-diagnosis",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "seed:exercise": "node scripts/seed-exercise-supabase.mjs",
+    "seed:exercise:with-env-file": "node --env-file=.env scripts/seed-exercise-supabase.mjs",
+    "seed:exercise:dry": "node scripts/seed-exercise-supabase.mjs --dry-run"
+  },
   "dependencies": {
-    "@supabase/supabase-js": "^2.103.3"
+    "@supabase/supabase-js": "^2.49.8"
   }
 }

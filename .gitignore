@@ -1,3 +1,12 @@
 .vercel
 
 .DS_Store
+.env
+.env.local
+
+node_modules/
+
+# service_role キー等を含む本番秘密設定（絶対コミット不可）
+# anon キーのみの supabase-config.js はコミット対象
+.env.supabase.secret
+
