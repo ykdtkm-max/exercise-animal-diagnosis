@@ -2367,25 +2367,30 @@
       var normY = yMidCol;
       var barY = yMidCol + fsNorm + normToBarGap;
 
+      // K 文字（左右）— 選択側はバーと同色で塗る（結果画面 .axis-row.a-N .is-on b と同じ仕様）。
+      var axisColor = AXIS_FILL_HEX[idx] || AXIS_FILL_HEX[0];
+      var leftIsOn = !neutral && !isPlus;
+      var rightIsOn = !neutral && isPlus;
+
       // 左サイド（中央寄せ／is-on と同様の色）
       ctx.textAlign = 'center';
       ctx.font = '800 ' + fsK + 'px ' + FONT_EN_DRAW;
-      ctx.fillStyle = !neutral && !isPlus ? INK_HEX : INK_MUTE_HEX;
+      ctx.fillStyle = leftIsOn ? axisColor : INK_MUTE_HEX;
       ctx.fillText(left.k || '', leftCx, yPoleL);
 
       ctx.font = '600 ' + fsJp + 'px ' + FONT_JP_DRAW;
-      ctx.fillStyle = !neutral && !isPlus ? INK_SOFT_HEX : INK_MUTE_HEX;
+      ctx.fillStyle = leftIsOn ? INK_SOFT_HEX : INK_MUTE_HEX;
       leftLines.forEach(function (ln, j) {
         ctx.fillText(ln, leftCx, yJpL0 + j * jpLineH);
       });
 
       // 右サイド
       ctx.font = '800 ' + fsK + 'px ' + FONT_EN_DRAW;
-      ctx.fillStyle = !neutral && isPlus ? INK_HEX : INK_MUTE_HEX;
+      ctx.fillStyle = rightIsOn ? axisColor : INK_MUTE_HEX;
       ctx.fillText(right.k || '', rightCx, yPoleR);
 
       ctx.font = '600 ' + fsJp + 'px ' + FONT_JP_DRAW;
-      ctx.fillStyle = !neutral && isPlus ? INK_SOFT_HEX : INK_MUTE_HEX;
+      ctx.fillStyle = rightIsOn ? INK_SOFT_HEX : INK_MUTE_HEX;
       rightLines.forEach(function (ln, j) {
         ctx.fillText(ln, rightCx, yJpR0 + j * jpLineH);
       });
@@ -2515,25 +2520,27 @@
 
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
-    ctx.fillStyle = INK_HEX;
-    ctx.globalAlpha = 0.82;
+
+    // タイプコード（アルファベット 4文字）を、タイプ名の直上に大きく配置。
+    // サイトの .hero__code-main（letter-spacing:0.22em / font-en）に倣い、共有画像では
+    // インパクトが出るよう 28px に拡大。
+    var lsCodeSave = '';
     try {
       if ('letterSpacing' in ctx && typeof ctx.letterSpacing !== 'undefined') {
-        lsHeroSave = ctx.letterSpacing;
-        ctx.letterSpacing = '0.2em';
+        lsCodeSave = ctx.letterSpacing;
+        ctx.letterSpacing = '0.24em';
       }
-    } catch (_eLs) {}
-    ctx.font = '800 22px ' + FONT_JP_DRAW;
-    var conceptLines = wrapTextLines(ctx, t.concept_title || '', maxTextW);
-    conceptLines.slice(0, 3).forEach(function (line, j) {
-      ctx.fillText(line, x + w / 2, ty + j * 27);
-    });
+    } catch (_eLsCode) {}
+    var fsCode = 28;
+    ctx.font = '800 ' + fsCode + 'px ' + FONT_EN_DRAW;
+    ctx.fillStyle = INK_HEX;
+    ctx.globalAlpha = 0.92;
+    ctx.fillText(code, x + w / 2, ty);
     ctx.globalAlpha = 1;
     try {
-      if ('letterSpacing' in ctx) ctx.letterSpacing = lsHeroSave;
-    } catch (_eLs2) {}
-
-    ty += Math.min(conceptLines.length, 3) * 27 + 7;
+      if ('letterSpacing' in ctx) ctx.letterSpacing = lsCodeSave;
+    } catch (_eLsCode2) {}
+    ty += fsCode + 12;
 
     var fsName = Math.min(
       52,
@@ -2546,26 +2553,7 @@
     nameLines.slice(0, 3).forEach(function (line, j) {
       ctx.fillText(line, x + w / 2, ty + j * nameLh);
     });
-    ty += Math.min(nameLines.length, 3) * nameLh + 8;
-
-    // タイプコード（アルファベット）— サイトの .hero__code-main と揃え、太め＆広めの
-    // letterSpacing で「英字記号」感を強める。letterSpacing 未対応ブラウザは無視される。
-    var lsCodeSave = '';
-    try {
-      if ('letterSpacing' in ctx && typeof ctx.letterSpacing !== 'undefined') {
-        lsCodeSave = ctx.letterSpacing;
-        ctx.letterSpacing = '0.22em';
-      }
-    } catch (_eLsCode) {}
-    ctx.font = '800 22px ' + FONT_EN_DRAW;
-    ctx.fillStyle = INK_HEX;
-    ctx.globalAlpha = 0.85;
-    ctx.fillText(code, x + w / 2, ty);
-    ctx.globalAlpha = 1;
-    try {
-      if ('letterSpacing' in ctx) ctx.letterSpacing = lsCodeSave;
-    } catch (_eLsCode2) {}
-    ty += 32;
+    ty += Math.min(nameLines.length, 3) * nameLh + 14;
 
     var bottomReserve = y + boxH - 24;
     var fsCatch = 19;
@@ -2780,13 +2768,9 @@
           // ─ ブランドロゴ部（サイトヘッダー流儀）
           var BRAND_LOGO_TOP_PAD = 56;       // canvas 上端からのゆとり
           var BRAND_LOGO_HEIGHT = 76;        // drawStoryBrandLogo 内の iconSize と一致
-          var BRAND_TO_SUBTITLE_GAP = 18;
-          var SUBTITLE_FONT_SIZE = 22;
-          var SUBTITLE_HEIGHT = SUBTITLE_FONT_SIZE + 4;
-          var BRAND_BOTTOM_TO_HERO_GAP = 36; // ロゴブロック下端〜ヒーロー頭
+          var BRAND_BOTTOM_TO_HERO_GAP = 48; // ロゴブロック下端〜ヒーロー頭
 
-          var brandBlockHeight = BRAND_LOGO_HEIGHT + BRAND_TO_SUBTITLE_GAP + SUBTITLE_HEIGHT;
-          var heroY = BRAND_LOGO_TOP_PAD + brandBlockHeight + BRAND_BOTTOM_TO_HERO_GAP;
+          var heroY = BRAND_LOGO_TOP_PAD + BRAND_LOGO_HEIGHT + BRAND_BOTTOM_TO_HERO_GAP;
           var targetHeroH = 520;
           var minFootGap = BETWEEN_AXES_AND_DATE + DATE_TOP_PAD_ABOVE_AXES_PX;
           var overflowY = heroY + targetHeroH + GAP_AFTER_HERO + axesSpan + minFootGap - footBaselineY;
@@ -2794,16 +2778,7 @@
           var axesOriginY = heroY + heroH + GAP_AFTER_HERO;
 
           // 1) ブランドロゴ「[favicon] 運動アニマル図鑑」を中央に描画
-          var brandBottom = drawStoryBrandLogo(ctx, STORY_W / 2, BRAND_LOGO_TOP_PAD, brandImg || null);
-          // 2) ロゴ直下に小さく "あなたの運動タイプ診断結果" サブライン
-          ctx.fillStyle = INK_MUTE_HEX;
-          ctx.globalAlpha = 0.78;
-          ctx.font = '700 ' + SUBTITLE_FONT_SIZE + 'px ' + FONT_JP_DRAW;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'top';
-          ctx.fillText('あなたの運動タイプ診断結果', STORY_W / 2, brandBottom + BRAND_TO_SUBTITLE_GAP);
-          ctx.globalAlpha = 1;
-          ctx.textBaseline = 'alphabetic';
+          drawStoryBrandLogo(ctx, STORY_W / 2, BRAND_LOGO_TOP_PAD, brandImg || null);
 
           drawStoryHero(ctx, margin, heroY, innerW, heroH, code, t, c, charImg || null);
 
