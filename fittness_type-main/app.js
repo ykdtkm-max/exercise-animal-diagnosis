@@ -46,92 +46,20 @@
     return fallback || '#FFE9C2';
   }
 
-  function parseHexRgb6(hex) {
-    var raw = String(hex || '').trim().replace(/^#/, '');
-    if (/^[0-9A-Fa-f]{3}$/.test(raw)) {
-      raw = raw.split('').map(function (ch) { return ch + ch; }).join('');
-    }
-    if (!/^[0-9A-Fa-f]{6}$/.test(raw)) return null;
-    return {
-      r: parseInt(raw.slice(0, 2), 16),
-      g: parseInt(raw.slice(2, 4), 16),
-      b: parseInt(raw.slice(4, 6), 16),
-    };
+  /**
+   * キャラ固有の文字色を取得する。
+   * chars-data.js の `textColor` を唯一の真実とし、各キャラに 1 個ずつ
+   * ユニークに設定された値をそのまま返す。未定義時は ink フォールバック。
+   */
+  function charTextColor(codeOrChar) {
+    var ch = typeof codeOrChar === 'string' ? CHARS()[codeOrChar] : codeOrChar;
+    return safeCssColor(ch && ch.textColor, '#2B2535');
   }
 
-  function rgbToHex(rr, gg, bb) {
-    function b(x) {
-      var n = Math.max(0, Math.min(255, Math.round(x)));
-      var h = n.toString(16);
-      return h.length === 1 ? '0' + h : h;
-    }
-    return '#' + b(rr) + b(gg) + b(bb);
-  }
-
-  function rgbToHsl(r, g, b) {
-    r /= 255;
-    g /= 255;
-    b /= 255;
-    var max = Math.max(r, g, b);
-    var min = Math.min(r, g, b);
-    var h = 0;
-    var s = 0;
-    var l = (max + min) / 2;
-    var d = max - min;
-    if (d > 1e-6) {
-      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-      switch (max) {
-        case r:
-          h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
-          break;
-        case g:
-          h = ((b - r) / d + 2) / 6;
-          break;
-        default:
-          h = ((r - g) / d + 4) / 6;
-          break;
-      }
-    }
-    return { h: h, s: s, l: l };
-  }
-
-  function hslToRgb(h, s, l) {
-    if (s < 1e-6) {
-      var x = Math.max(0, Math.min(1, l)) * 255;
-      return { r: x, g: x, b: x };
-    }
-    var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-    var p = 2 * l - q;
-    function hue(t) {
-      if (t < 0) t += 1;
-      if (t > 1) t -= 1;
-      if (t < 1 / 6) return p + (q - p) * 6 * t;
-      if (t < 1 / 2) return q;
-      if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
-      return p;
-    }
-    return {
-      r: hue(h + 1 / 3) * 255,
-      g: hue(h) * 255,
-      b: hue(h - 1 / 3) * 255,
-    };
-  }
-
-  /** キャラ tint（薄い色）から、選択中タイプコード用の濃い色へ */
-  function tintToPickerActiveCodeHex(tint) {
-    var safe = parseHexRgb6(safeCssColor(tint, '#FFE9C2'));
-    if (!safe) return '#2b2535';
-    var hsl = rgbToHsl(safe.r, safe.g, safe.b);
-    if (hsl.s < 0.07) {
-      var y = hsl.l;
-      var L = y > 0.88 ? 0.34 : Math.max(0.22, Math.min(0.4, y * 0.35));
-      var v = Math.round(L * 255);
-      return rgbToHex(v, v, v);
-    }
-    var newS = Math.min(0.9, hsl.s * 1.22 + 0.2);
-    var newL = Math.max(0.2, Math.min(0.38, 0.74 - hsl.l * 0.48));
-    var out = hslToRgb(hsl.h, newS, newL);
-    return rgbToHex(out.r, out.g, out.b);
+  /** キャラ固有の背景色（tint）を取得する。chars-data.js が唯一の真実。 */
+  function charTint(codeOrChar) {
+    var ch = typeof codeOrChar === 'string' ? CHARS()[codeOrChar] : codeOrChar;
+    return safeCssColor(ch && ch.tint, '#FFE9C2');
   }
 
   function charImgHtml(code, alt) {
@@ -731,7 +659,7 @@
       btn.className = 'tcard';
       btn.setAttribute('aria-label', escapeAttr(code + ' ' + t.type_name));
 
-      var tint = safeCssColor(c && c.tint, '#FFE9C2');
+      var tint = charTint(c);
       var img  = c ? (isTypeUnlocked(code) ? charImgFullHtml(code) : charImgHtml(code)) : '';
 
       btn.innerHTML =
@@ -873,7 +801,7 @@
   // ── 相性カード ───────────────────────────────────────────────────────────────
   function compatCard(c, badgeClass, badgeLabel) {
     var ch = CHARS()[c.code];
-    var tint = safeCssColor(ch && ch.tint, '#FFE9C2');
+    var tint = charTint(ch);
     return (
       '<div class="compat-card">' +
         '<div class="compat-card__side">' +
@@ -1323,7 +1251,7 @@
           '<div class="secret-compat-detail__hero">' +
             '<span class="pill ' + pillCls + '">' + escapeHtml(pillLabel) + '</span>' +
             '<div class="secret-compat-detail__hero-row">' +
-              '<div class="secret-compat-detail__char" style="background:' + safeCssColor(otherChar.tint, '#FFE9C2') + '">' +
+              '<div class="secret-compat-detail__char" style="background:' + charTint(otherChar) + '">' +
                 charImgFullHtml(otherCode) +
               '</div>' +
               '<div class="secret-compat-detail__hero-text">' +
@@ -1398,9 +1326,9 @@
       if (!t || !ch) return;
       buttons +=
         '<button type="button" class="secret-compat-picker__btn' + (code === myCode ? ' secret-compat-picker__btn--self' : '') +
-        '" style="--picker-code-active:' + tintToPickerActiveCodeHex(ch.tint) +
+        '" style="--picker-code-active:' + charTextColor(ch) +
         '" data-secret-compat-code="' + escapeAttr(code) + '" aria-label="' + escapeAttr(code + ' ' + t.type_name) + '">' +
-          '<span class="secret-compat-picker__thumb" style="background:' + safeCssColor(ch.tint, '#FFE9C2') + '">' +
+          '<span class="secret-compat-picker__thumb" style="background:' + charTint(ch) + '">' +
             charImgFullHtml(code) +
           '</span>' +
           '<span class="secret-compat-picker__code">' + escapeHtml(code) + '</span>' +
@@ -1421,10 +1349,10 @@
     return (
       '<div class="secret-compat-page" data-secret-compat-root data-my-code="' + escapeAttr(myCode) + '">' +
         '<div class="secret-compat-page__hero">' +
-          '<div class="secret-compat-page__char" style="background:' + safeCssColor(myChar.tint, '#FFE9C2') + '">' +
+          '<div class="secret-compat-page__char" style="background:' + charTint(myChar) + '">' +
             charImgFullHtml(myCode) +
           '</div>' +
-          '<div style="--picker-code-active:' + tintToPickerActiveCodeHex(myChar.tint) + '">' +
+          '<div style="--picker-code-active:' + charTextColor(myChar) + '">' +
             '<span class="secret-compat-page__code">' + escapeHtml(myCode) + '</span>' +
             '<h1 class="secret-compat-page__title">' + escapeHtml(myType.type_name) + '</h1>' +
             '<p class="secret-compat-page__text">気になる仲間と一緒に運動しよう！</p>' +
@@ -1510,7 +1438,7 @@
     if (!ch) return '';
     var sample = !!(opts && opts.sample);
     var quadrant = !sample && !!(opts && opts.quadrant);
-    var tint = safeCssColor(ch && ch.tint, '#FFE9C2');
+    var tint = charTint(ch);
     var leftPct, topPct;
     if (quadrant) {
       // 図鑑モード: MOTION_FIT[code] の符号で象限を判定し、各象限の中心(25%/75%)に固定配置
@@ -2423,7 +2351,7 @@
     ctx.save();
 
     var lsHeroSave = '';
-    var tint = charRow && charRow.tint ? charRow.tint : '#FFE9C2';
+    var tint = charTint(charRow);
     var cardR = 84;
 
     // 結果ヒーロー相当のフラットシャドウ
@@ -2811,8 +2739,9 @@
 
   // ── タイプ詳細モーダル HTML ───────────────────────────────────────────────────
   function buildTypeDetailHtml(t, code) {
-    var c    = CHARS()[code || t.code];
-    var tint = safeCssColor(c && c.tint, '#FFE9C2');
+    var c     = CHARS()[code || t.code];
+    var tint  = charTint(c);
+    var textC = charTextColor(c);
 
     function secText(num, label, innerTitle, text) {
       var paragraphs = String(text || '').split(/\n+/).filter(function(s) { return s.trim(); }).map(function(s) {
@@ -2851,7 +2780,7 @@
     }
 
     return (
-      '<div class="modal-type-hero" style="background:' + tint + '">' +
+      '<div class="modal-type-hero" style="--char-tint:' + tint + ';--char-text:' + textC + '">' +
         '<div class="modal-type-code">' + escapeHtml(code || t.code) + '</div>' +
         '<div class="modal-type-char">' + charImgFullHtml(code || t.code) + '</div>' +
         '<h2 class="modal-type-name">' + escapeHtml(t.type_name) + '</h2>' +
@@ -2984,7 +2913,8 @@
     // ヒーローセクション
     var heroEl = document.getElementById('resultHero');
     if (heroEl && c) {
-      heroEl.style.setProperty('--char-tint', safeCssColor(c.tint, '#FFE9C2'));
+      heroEl.style.setProperty('--char-tint', charTint(c));
+      heroEl.style.setProperty('--char-text', charTextColor(c));
     }
 
     var heroCharEl  = document.getElementById('heroChar');
@@ -3165,7 +3095,7 @@
       if (!t || !c) return;
       var div = document.createElement('div');
       div.className = 'thumb';
-      div.style.background = safeCssColor(c.tint, '#FFE9C2');
+      div.style.background = charTint(c);
       div.title = code + ' ' + t.type_name;
       div.innerHTML = isTypeUnlocked(code) ? charImgFullHtml(code) : charImgHtml(code);
       stripEl.appendChild(div);
@@ -3183,7 +3113,7 @@
     document.querySelectorAll('.float[data-code]').forEach(function (el_) {
       var code = el_.dataset.code;
       var c = CHARS()[code];
-      if (c && c.tint) el_.style.background = safeCssColor(c.tint, '#FFE9C2');
+      if (c && c.tint) el_.style.background = charTint(c);
       el_.innerHTML = charImgFullHtml(code);
     });
 
@@ -3196,7 +3126,7 @@
     // コンパニオンキャラ (ハムスター固定)
     var charEl = document.getElementById('companionChar');
     if (charEl) {
-      charEl.style.background = '#FFF6CB';
+      charEl.style.background = charTint('SPMC');
       charEl.innerHTML = charImgHtml('SPMC');
     }
     // 質問カードのキャラ (ナマケモノ固定)
