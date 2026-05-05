@@ -383,8 +383,9 @@ body.app-booting {
   justify-content: space-between; gap: clamp(4px, 1.5vw, 8px);
 }
 /* ── ラジオボタン風 Likert ── */
+/* タップ領域は最低 44px を確保（Apple HIG / WCAG 2.5.5 準拠） */
 .likert__opt {
-  flex: 1 1 0; min-width: 0; max-width: 40px;
+  flex: 1 1 0; min-width: 44px; max-width: 48px;
   aspect-ratio: 1 / 1; height: auto;
   border-radius: 50%; cursor: pointer;
   background: #fff;
