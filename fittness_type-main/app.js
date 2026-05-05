@@ -1470,7 +1470,7 @@
    * @param {string} code - タイプコード（アイコン表示用）
    * @param {{structure:number, intensity:number}} [userSums] - ユーザーの軸スコア合計
    *   （-24〜+24）。指定された場合は MOTION_FIT[code] の代わりに動的位置を計算する。
-   *   - x 軸: structure → +(P) なら左=計画、-(F) なら右=気分
+   *   - x 軸: structure → +(P) なら右=計画、-(F) なら左=気分
    *   - y 軸: intensity → +(D) なら上=高める、-(C) なら下=整える
    * @param {{sample?:boolean}} [opts] - 診断結果がない場合のサンプル表示モード。
    *   true のときはピンと運動スタイル説明文を出さず、「見本です / 診断後はあなたの
@@ -1486,13 +1486,16 @@
         typeof userSums.structure === 'number' &&
         typeof userSums.intensity === 'number') {
       // ユーザー回答ベースの動的位置（軸合計 ±24 を中央 ±30% にマッピング → 20-80% にクランプ）
+      // P(計画)=+ で右側に伸ばすため、structure を加算する向きで反映する。
       var clamp = function (v, mn, mx) { return Math.max(mn, Math.min(mx, v)); };
-      leftPct = Math.round(clamp(50 - (userSums.structure / 24) * 30, 20, 80));
+      leftPct = Math.round(clamp(50 + (userSums.structure / 24) * 30, 20, 80));
       topPct  = Math.round(clamp(50 - (userSums.intensity / 24) * 30, 20, 80));
     } else {
+      // MOTION_FIT.plan は +2=突発(F) / -2=計画(P) の向きで定義されているため、
+      // 計画(P)を右に置く新レイアウトでは上下反転して leftPct を計算する。
       var fit = MOTION_FIT[code];
       if (!fit) return '';
-      leftPct = Math.round(20 + (fit.plan + 2) / 4 * 60);
+      leftPct = Math.round(80 - (fit.plan + 2) / 4 * 60);
       topPct  = Math.round(20 + (2 - fit.goal) / 4 * 60);
     }
     // クランプ後の座標で吹き出し方向を判定
@@ -1531,14 +1534,14 @@
             '<span class="motion-fit__label-arr" aria-hidden="true">▲</span>' +
           '</span>' +
           '<div class="motion-fit__mid">' +
-            '<span class="motion-fit__label mf-left">計画 ◀</span>' +
+            '<span class="motion-fit__label mf-left">気分 ◀</span>' +
             '<div class="motion-fit__chart">' +
               '<div class="motion-fit__axis-h"></div>' +
               '<div class="motion-fit__axis-v"></div>' +
               pinHtml +
               overlayHtml +
             '</div>' +
-            '<span class="motion-fit__label mf-right">▶ 気分</span>' +
+            '<span class="motion-fit__label mf-right">▶ 計画</span>' +
           '</div>' +
           '<span class="motion-fit__label motion-fit__label--col mf-bottom">' +
             '<span class="motion-fit__label-arr" aria-hidden="true">▼</span>' +
