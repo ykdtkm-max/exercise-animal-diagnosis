@@ -39,7 +39,7 @@ JS/CSS を更新したら以下の `?v=` を必ずバンプする:
 |---------|------|-----------|
 | `styles.css?v=exercise-vNNN` | `fittness_type-main/index.html` / `privacy.html` | `exercise-v281` |
 | `app.js?v=exercise-vNNN` | `fittness_type-main/content-loader.js` の `APP_SCRIPT` | `exercise-v283` |
-| `content-loader.js?v=exercise-clNN` | `fittness_type-main/index.html` | `exercise-cl22` |
+| `content-loader.js?v=exercise-clNN` | `fittness_type-main/index.html` | `exercise-cl23` |
 | `chars-data.js?v=exercise-chNN` | `fittness_type-main/index.html` | `exercise-ch21` |
 | `clarity-init.js?v=clarity-N` | `fittness_type-main/index.html` / `privacy.html` | `clarity-2` |
 | `tokens.css?v=exercise-tN` / `components.css?v=exercise-cNN` | `fittness_type-main/index.html` / `privacy.html` | `exercise-t2` / `exercise-c13` |
