@@ -10,11 +10,11 @@
   'use strict';
 
   var STATIC_SCRIPTS = [
-    'types-data.js?v=exercise-v46',
+    'types-data.js?v=exercise-v47',
     'data.js?v=exercise-v9',
-    'secret-compat-detail-data.js?v=exercise-scd17',
+    'secret-compat-detail-data.js?v=exercise-scd18',
   ];
-  var APP_SCRIPT = 'app.js?v=exercise-v269';
+  var APP_SCRIPT = 'app.js?v=exercise-v270';
   var OPTION_LABEL_FALLBACK = [
     'とても賛成',
     '賛成',
