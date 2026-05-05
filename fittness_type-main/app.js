@@ -2771,7 +2771,7 @@
   }
 
   function buildInAppHelpBody(inApp) {
-    return inAppDisplayName(inApp) + ' 内のブラウザでは直接保存できないため、ブラウザを切り替えてもう一度「保存」をタップしてください。';
+    return '<li>' + inAppDisplayName(inApp) + ' 内のブラウザでは直接保存できないため、ブラウザを切り替えてもう一度「保存」をタップしてください。</li>';
   }
 
   function showInAppDownloadHelpDialog(inApp, blob, filename) {
@@ -4499,9 +4499,16 @@
   var inAppHelpDialog = document.getElementById('inAppDownloadHelpDialog');
   var inAppHelpDismiss = document.getElementById('inAppDownloadHelpDismiss');
   var inAppHelpExternal = document.getElementById('inAppDownloadHelpExternal');
+  var inAppHelpDismissSecondary = document.getElementById('inAppDownloadHelpDismissSecondary');
   if (inAppHelpDismiss) {
     inAppHelpDismiss.addEventListener('click', function (e) {
       e.stopPropagation();
+      track('save_image_inapp_help_dismiss');
+      hideInAppDownloadHelpDialog();
+    });
+  }
+  if (inAppHelpDismissSecondary) {
+    inAppHelpDismissSecondary.addEventListener('click', function () {
       track('save_image_inapp_help_dismiss');
       hideInAppDownloadHelpDialog();
     });

@@ -45,7 +45,7 @@
     <meta name="twitter:image:alt" content="運動アニマル図鑑 — 4つの軸から、16アニマルの運動スタイルを判定" />
     <link rel="stylesheet" href="tokens.css?v=exercise-t2" />
     <link rel="stylesheet" href="components.css?v=exercise-c13" />
-    <link rel="stylesheet" href="styles.css?v=exercise-v297" />
+    <link rel="stylesheet" href="styles.css?v=exercise-v298" />
   </head>
   <body class="app-booting">
     <!-- ═══════════════ Welcome ═══════════════ -->
@@ -395,11 +395,8 @@
           ×
         </button>
         <div class="modal__icon" aria-hidden="true">!</div>
-        <h2 id="inAppDownloadHelpTitle">ブラウザで開いて保存</h2>
-        <p
-          id="inAppDownloadHelpBody"
-          style="font-size:14px;line-height:1.7;color:var(--ink);font-weight:500;margin:8px 0 4px;text-align:left;"
-        ></p>
+        <h2 id="inAppDownloadHelpTitle">ブラウザを開いて保存</h2>
+        <ol class="share-steps" id="inAppDownloadHelpBody"></ol>
         <div class="modal__actions">
           <button
             type="button"
@@ -407,6 +404,13 @@
             id="inAppDownloadHelpExternal"
           >
             ブラウザを開いて保存する
+          </button>
+          <button
+            type="button"
+            class="btn btn--secondary"
+            id="inAppDownloadHelpDismissSecondary"
+          >
+            閉じる
           </button>
         </div>
       </div>
