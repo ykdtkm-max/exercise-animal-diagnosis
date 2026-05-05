@@ -778,12 +778,14 @@ body.app-booting {
   min-width: 0;
   background: var(--paper-card);
   border-radius: var(--r-lg);
-  overflow: hidden;
+  /* ピン／吹き出しがチャート端に近いタイプでクリップされないよう visible
+     軸線(.motion-fit__axis-h/v)はチャート aspect-ratio 内に絶対配置されているため、
+     overflow を visible にしても軸線自体は枠外には出ない。 */
+  overflow: visible;
 }
 .motion-map-bleed .motion-fit__chart {
   background: #fff;
   border-radius: var(--r-lg);
-  /* ピン／吹き出しが角からはみ出すため visible（軸線は正方形内のみ） */
   overflow: visible;
 }
 /* 軸線（点線） */
@@ -854,13 +856,17 @@ body.app-booting {
   font-weight: 900;
   line-height: 1;
 }
-/* キャラクターピン — アイコンを座標のアンカーとして固定 */
+/* キャラクターピン — アイコンを座標のアンカーとして固定。
+   `.motion-fit__chart` の overflow を visible にしている前提で、
+   ピン本体と吹き出しがチャート枠を超えてはみ出して見えるようにする。
+   z-index は同じカード内の象限塗り(.motion-fit__quadrant-bg, z:0)/軸線/4軸プロフィールの
+   カード影より確実に上に来るよう 5 にする。 */
 .motion-fit__pin {
   position: absolute;
   width: 59px;
   height: 59px;
   transform: translate(-50%, -50%);
-  z-index: 2;
+  z-index: 5;
 }
 /* アイコン円 — 親（46px）を 100% 埋める */
 .motion-fit__pin-char {
@@ -2270,6 +2276,67 @@ body.celebration-locked {
 }
 .site-footer__link:hover {
   color: var(--ink, #2b2535);
+}
+
+/* ────────────────────────────────────────────────────────────────
+ * 画像保存用フルスクリーンプレビュー（長押し保存）
+ * SNS WebView 含むあらゆるブラウザで動作する保存手段。
+ * 生成済み PNG を画面いっぱいに表示し、ネイティブのコンテキストメニュー
+ * (iOS「画像を保存」/ Android「画像をダウンロード」) で写真ロールへ保存させる。
+ * ──────────────────────────────────────────────────────────────── */
+.image-save-overlay {
+  position: fixed; inset: 0;
+  background: rgba(15, 12, 22, 0.94);
+  z-index: 9000;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 56px 16px 24px;
+  gap: 12px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.image-save-overlay[hidden] { display: none !important; }
+.image-save-overlay__close {
+  position: absolute;
+  top: 12px; right: 12px;
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ink);
+  font-size: 24px; font-weight: 700;
+  line-height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  z-index: 1;
+}
+.image-save-overlay__hint {
+  margin: 0;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 0.04em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+.image-save-overlay__hint--bottom { font-size: 11px; opacity: 0.78; }
+.image-save-overlay__img {
+  display: block;
+  max-width: 100%;
+  max-height: 75vh;
+  width: auto; height: auto;
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
+  /* iOS Safari / Android Chrome のネイティブ長押しメニューを確実に出すため:
+     - touch-callout: default で long-press メニューを許可
+     - user-select: text を許可（コンテキストメニュー対象に必要なブラウザがある）
+     - pointer-events: auto で確実にイベントが届くように */
+  -webkit-touch-callout: default;
+  touch-callout: default;
+  -webkit-user-select: auto;
+  user-select: auto;
+  pointer-events: auto;
 }
 
 /* ────────────────────────────────────────────────────────────────

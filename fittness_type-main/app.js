@@ -296,16 +296,70 @@
     return o;
   }
 
+  /**
+   * URL クエリ `?_d=social,structure,resilience,intensity` から診断スコアを復元。
+   * LINE の openExternalBrowser=1 で Safari に切り替わった際に、sessionStorage が
+   * 別オリジン扱いで失われるのを救済するために導入。
+   * 復元成功時はクエリパラメータを history.replaceState で削除（URL 共有時のスコア漏洩防止）。
+   */
+  function tryHydrateScoresFromUrl() {
+    try {
+      var url = new URL(window.location.href);
+      var d = url.searchParams.get('_d');
+      if (!d) return false;
+      var parts = d.split(',').map(function (s) { return parseInt(s, 10); });
+      if (parts.length !== 4 || parts.some(function (x) { return Number.isNaN(x); })) return false;
+      var sums = {
+        social: parts[0],
+        structure: parts[1],
+        resilience: parts[2],
+        intensity: parts[3],
+      };
+      if (!isValidStoredSums(sums)) return false;
+      var hashRaw = (window.location.hash || '').replace(/^#\/?/, '');
+      var hashParts = hashRaw.split('/').filter(Boolean);
+      var code = (hashParts[0] === 'result' && hashParts[1]) ? hashParts[1].toUpperCase() : null;
+      if (!code || !TYPES()[code]) return false;
+      state.lastCode = code;
+      state.lastScores = sums;
+      persistSavedResult();
+      // URL からスコアと openExternalBrowser=1 を取り除く（履歴に残さず差し替え）
+      url.searchParams.delete('_d');
+      url.searchParams.delete('openExternalBrowser');
+      var cleanQuery = url.searchParams.toString();
+      var cleanUrl = url.pathname + (cleanQuery ? '?' + cleanQuery : '') + url.hash;
+      try { window.history.replaceState(null, '', cleanUrl); } catch (_eRpl) {}
+      return true;
+    } catch (_e) {
+      return false;
+    }
+  }
+
+  /** 現在の lastScores を URL クエリ用文字列にシリアライズ */
+  function buildScoresQueryParam() {
+    var s = state.lastScores;
+    if (!s || !isValidStoredSums(s)) return null;
+    return [s.social, s.structure, s.resilience, s.intensity].join(',');
+  }
+
   function hydratePersistedIntoStateOnce() {
     if (didHydrateFromStorage) return;
     didHydrateFromStorage = true;
-    var o = loadPersistedSaved();
-    if (o) {
-      state.lastCode = o.code;
-      state.lastScores = o.sums;
+    // 1) URL の _d パラメータがあればそれを優先（LINE→Safari切替の引き継ぎ）
+    var fromUrl = tryHydrateScoresFromUrl();
+    var o = null;
+    if (!fromUrl) {
+      o = loadPersistedSaved();
+      if (o) {
+        state.lastCode = o.code;
+        state.lastScores = o.sums;
+      }
+    }
+    if (fromUrl || o) {
       // Clarity: 過去に診断完了したリピーターを識別
       trackTag('has_diagnosed', '1');
-      trackTag('result_type', o.code || '');
+      trackTag('result_type', state.lastCode || '');
+      if (fromUrl) trackTag('hydrated_from_url', '1');
     } else {
       trackTag('has_diagnosed', '0');
     }
@@ -2617,7 +2671,184 @@
     setTimeout(function () { URL.revokeObjectURL(url); }, 2400);
   }
 
+  /**
+   * SNS アプリ内 WebView 判定（UA ベース）。
+   * これらのブラウザでは <a download> や Web Share API が制限されることが多く、
+   * 検出時は専用ガイダンスダイアログ (#inAppDownloadHelpDialog) を出す。
+   */
+  function detectInAppBrowser() {
+    var ua = (navigator && navigator.userAgent) || '';
+    if (/Line\//i.test(ua)) return 'line';
+    if (/Instagram/i.test(ua)) return 'instagram';
+    if (/FBAN|FBAV|FB_IAB/i.test(ua)) return 'facebook';
+    if (/Twitter for|TwitterAndroid/i.test(ua)) return 'twitter';
+    if (/musical_ly|Bytedance|TikTok/i.test(ua)) return 'tiktok';
+    if (/KAKAOTALK/i.test(ua)) return 'kakao';
+    return null;
+  }
+
+  /** モバイル / タブレット環境かを UA で粗く判定（保存戦略の分岐に使用） */
+  function isMobileLikely() {
+    var ua = (navigator && navigator.userAgent) || '';
+    return /iPhone|iPad|iPod|Android/i.test(ua);
+  }
+
+  /**
+   * 画像保存用フルスクリーンプレビューを開く。
+   * SNS WebView でも window.open / <a download> に頼らず、画像を画面に出して
+   * ユーザーの長押し操作 → ネイティブ「写真に保存」を促す universal solution。
+   * （iOS Safari / Android Chrome の native context menu は touch-callout が
+   *  許可されたまま IMG にロングタップすれば確実に開く）
+   */
+  var imageSaveOverlayUrl = null;
+  function showImageSaveOverlay(blob) {
+    var overlay = document.getElementById('imageSaveOverlay');
+    var img = document.getElementById('imageSaveOverlayImg');
+    if (!overlay || !img) return false;
+    try {
+      // 既存 Object URL があれば解放してから差し替え
+      if (imageSaveOverlayUrl) {
+        try { URL.revokeObjectURL(imageSaveOverlayUrl); } catch (_) {}
+      }
+      imageSaveOverlayUrl = URL.createObjectURL(blob);
+      img.src = imageSaveOverlayUrl;
+      overlay.hidden = false;
+      // body スクロール抑制
+      document.body.style.overflow = 'hidden';
+      return true;
+    } catch (_e) {
+      return false;
+    }
+  }
+
+  function hideImageSaveOverlay() {
+    var overlay = document.getElementById('imageSaveOverlay');
+    var img = document.getElementById('imageSaveOverlayImg');
+    if (overlay) overlay.hidden = true;
+    if (img) img.removeAttribute('src');
+    if (imageSaveOverlayUrl) {
+      try { URL.revokeObjectURL(imageSaveOverlayUrl); } catch (_) {}
+      imageSaveOverlayUrl = null;
+    }
+    document.body.style.overflow = '';
+  }
+
+  /** アプリ内ブラウザ用ガイダンスダイアログの最後の blob/filename を保持 */
+  var inAppHelpState = { blob: null, filename: null, inApp: null };
+
+  function inAppDisplayName(inApp) {
+    return ({
+      line: 'LINE',
+      instagram: 'Instagram',
+      facebook: 'Facebook',
+      twitter: 'X (Twitter)',
+      tiktok: 'TikTok',
+      kakao: 'KakaoTalk',
+    })[inApp] || 'このアプリ';
+  }
+
+  function buildInAppHelpBody(inApp) {
+    if (inApp === 'line') {
+      return 'LINE 内のブラウザでは画像の直接ダウンロードが制限されています。<br />' +
+        '下の「<b>画像を表示して長押し保存</b>」ボタンを押し、<br />' +
+        '表示された画像を<b>長押し</b>して「写真に保存」を選んでください。<br />' +
+        '<small>※ 通常ブラウザ (Safari / Chrome) で開き直したい場合は「外部ブラウザで開く」を押してください。</small>';
+    }
+    return inAppDisplayName(inApp) + ' のアプリ内ブラウザでは画像の直接ダウンロードが制限されています。<br />' +
+      '下の「<b>画像を表示して長押し保存</b>」ボタンを押し、<br />' +
+      '表示された画像を<b>長押し</b>して「写真に保存」を選んでください。';
+  }
+
+  function showInAppDownloadHelpDialog(inApp, blob, filename) {
+    inAppHelpState.blob = blob;
+    inAppHelpState.filename = filename;
+    inAppHelpState.inApp = inApp;
+    var dialog = document.getElementById('inAppDownloadHelpDialog');
+    var body = document.getElementById('inAppDownloadHelpBody');
+    var externalBtn = document.getElementById('inAppDownloadHelpExternal');
+    if (body) body.innerHTML = buildInAppHelpBody(inApp);
+    if (externalBtn) {
+      externalBtn.textContent = inApp === 'line' ? 'Safari / Chrome で開く' : 'メニューの手順を確認';
+      externalBtn.disabled = inApp !== 'line';
+      // LINE 以外は実機メニュー操作が必要なので押せない見た目に
+      externalBtn.style.opacity = inApp === 'line' ? '' : '0.45';
+    }
+    if (dialog) dialog.hidden = false;
+    track('save_image_inapp_help_' + inApp);
+  }
+
+  function hideInAppDownloadHelpDialog() {
+    var dialog = document.getElementById('inAppDownloadHelpDialog');
+    if (dialog) dialog.hidden = true;
+  }
+
+  /**
+   * LINE in-app WebView 専用: 現在の URL に ?openExternalBrowser=1 を付与して再オープン。
+   * LINE クライアント側がこのパラメータを検知し、Safari (iOS) / Chrome (Android) で
+   * URL を開き直してくれる仕様（2026年現在も有効）。
+   * 同時に `?_d=<scores>` で診断スコアも引き継ぐので、Safari 側で再診断不要で
+   * そのまま画像保存できる。
+   */
+  function openExternalBrowserForLine() {
+    try {
+      var u = new URL(window.location.href);
+      u.searchParams.set('openExternalBrowser', '1');
+      var d = buildScoresQueryParam();
+      if (d) u.searchParams.set('_d', d);
+      window.location.href = u.toString();
+    } catch (_e) {
+      // URL 構築失敗時は素朴に連結
+      var sep = window.location.href.indexOf('?') >= 0 ? '&' : '?';
+      var dx = buildScoresQueryParam();
+      var extra = 'openExternalBrowser=1' + (dx ? '&_d=' + encodeURIComponent(dx) : '');
+      window.location.href = window.location.href + sep + extra;
+    }
+  }
+
+  /**
+   * 結果 PNG の保存。スマホ/PC/SNS アプリ内 WebView を横断して可能な限り保存できるよう、
+   * 以下の優先順でフォールバックする。
+   *   1) Web Share API Level 2 (navigator.share with files) — iOS Safari 15+ / Android Chrome
+   *      → ネイティブ共有シートで「写真に保存」「ファイルに追加」等を選べる
+   *   2) File System Access API (showSaveFilePicker) — PC Chrome / Edge
+   *   3) SNS アプリ内 WebView 判定 → 専用ガイダンスダイアログを表示
+   *   4) <a download> による blob ダウンロード（PC Safari/Firefox 等）
+   *   5) <a download> 失敗時は新規タブで blob を開く（長押し保存）
+   *
+   * 戻り値: Promise<boolean>。`false` はキャンセル/未完了で、celebration を発火させない。
+   */
   function saveBlobAsPng(blob, filename) {
+    // 1) Web Share API Level 2
+    // iOS Safari は files と text/url を同時に渡すと TypeError になるため files 単体で渡す。
+    // navigator.canShare 自体が無いブラウザ (古い Android Chrome 等) もスキップ。
+    if (typeof File === 'function' && navigator.canShare && navigator.share) {
+      var file = null;
+      try {
+        file = new File([blob], filename, { type: 'image/png' });
+      } catch (_eFile) {
+        file = null;
+      }
+      if (file && navigator.canShare({ files: [file] })) {
+        return navigator.share({ files: [file] })
+          .then(function () {
+            track('save_image_method_webshare');
+            return true;
+          })
+          .catch(function (err) {
+            if (err && err.name === 'AbortError') {
+              track('save_image_cancelled');
+              return false;
+            }
+            track('save_image_webshare_failed');
+            return saveBlobAsPngWithoutWebShare(blob, filename);
+          });
+      }
+    }
+    return saveBlobAsPngWithoutWebShare(blob, filename);
+  }
+
+  function saveBlobAsPngWithoutWebShare(blob, filename) {
+    // 2) PC Chrome/Edge: File System Access API
     if (window.showSaveFilePicker) {
       return window.showSaveFilePicker({
         suggestedName: filename,
@@ -2630,22 +2861,60 @@
           },
         ],
       })
-        .then(function (handle) {
-          return handle.createWritable();
-        })
+        .then(function (handle) { return handle.createWritable(); })
         .then(function (writable) {
-          return writable.write(blob).then(function () {
-            return writable.close();
-          });
+          return writable.write(blob).then(function () { return writable.close(); });
+        })
+        .then(function () {
+          track('save_image_method_picker');
+          return true;
         })
         .catch(function (err) {
-          if (err && err.name === 'AbortError') return false;
-          downloadBlobWithAnchor(blob, filename);
-          return true;
+          if (err && err.name === 'AbortError') {
+            track('save_image_cancelled');
+            return false;
+          }
+          // picker が選べないブラウザ実装等 → anchor へ
+          return fallbackSave(blob, filename);
         });
     }
-    downloadBlobWithAnchor(blob, filename);
-    return Promise.resolve(true);
+
+    return Promise.resolve(fallbackSave(blob, filename));
+  }
+
+  /**
+   * Web Share / showSaveFilePicker が使えない場合のフォールバック保存。
+   *   - SNS アプリ内 WebView 検出時: 専用ガイドダイアログ
+   *   - モバイル (Web Share 未対応) : 画像プレビューオーバーレイ → 長押し保存
+   *   - PC Safari/Firefox 等 (デスクトップ): <a download> でブラウザのダウンロード
+   *   - 全部失敗時: 画像プレビューオーバーレイで最低限の保存導線を提示
+   */
+  function fallbackSave(blob, filename) {
+    var inApp = detectInAppBrowser();
+    if (inApp) {
+      showInAppDownloadHelpDialog(inApp, blob, filename);
+      return false;
+    }
+    if (isMobileLikely()) {
+      // Web Share がスキップされたモバイル端末（古い Android Chrome 等）
+      // → 画像オーバーレイで長押し保存させる
+      if (showImageSaveOverlay(blob)) {
+        track('save_image_method_overlay');
+        return true;
+      }
+    }
+    try {
+      downloadBlobWithAnchor(blob, filename);
+      track('save_image_method_anchor');
+      return true;
+    } catch (_e) {
+      if (showImageSaveOverlay(blob)) {
+        track('save_image_method_overlay');
+        return true;
+      }
+      track('save_image_method_failed');
+      return false;
+    }
   }
 
   /** 結果PNG用・4軸ブロック総高（ヘッダ行は含めない）— layout と draw で共有 */
@@ -4179,6 +4448,68 @@
       closeShareSaveDialog();
     }
   });
+
+  // ── アプリ内ブラウザ用ガイダンスダイアログ ──
+  var inAppHelpDialog = document.getElementById('inAppDownloadHelpDialog');
+  var inAppHelpDismiss = document.getElementById('inAppDownloadHelpDismiss');
+  var inAppHelpExternal = document.getElementById('inAppDownloadHelpExternal');
+  var inAppHelpShowImage = document.getElementById('inAppDownloadHelpShowImage');
+  if (inAppHelpDismiss) {
+    inAppHelpDismiss.addEventListener('click', function (e) {
+      e.stopPropagation();
+      track('save_image_inapp_help_dismiss');
+      hideInAppDownloadHelpDialog();
+    });
+  }
+  if (inAppHelpDialog) {
+    inAppHelpDialog.addEventListener('click', function (e) {
+      if (e.target === inAppHelpDialog) {
+        track('save_image_inapp_help_backdrop_close');
+        hideInAppDownloadHelpDialog();
+      }
+    });
+  }
+  if (inAppHelpExternal) {
+    inAppHelpExternal.addEventListener('click', function () {
+      var inApp = inAppHelpState.inApp;
+      track('save_image_inapp_help_external_' + (inApp || 'unknown'));
+      if (inApp === 'line') {
+        // ?openExternalBrowser=1 を付けて再オープン → LINE が Safari/Chrome に切り替える
+        openExternalBrowserForLine();
+      }
+      // LINE 以外は実機メニュー操作が必要なので何もしない（ボタンは disabled のはず）
+    });
+  }
+  if (inAppHelpShowImage) {
+    inAppHelpShowImage.addEventListener('click', function () {
+      track('save_image_inapp_help_showimage_' + (inAppHelpState.inApp || 'unknown'));
+      if (inAppHelpState.blob && showImageSaveOverlay(inAppHelpState.blob)) {
+        hideInAppDownloadHelpDialog();
+      }
+    });
+  }
+
+  // ── 画像プレビューオーバーレイ（長押し保存）──
+  var imageSaveOverlay = document.getElementById('imageSaveOverlay');
+  var imageSaveOverlayClose = document.getElementById('imageSaveOverlayClose');
+  if (imageSaveOverlayClose) {
+    imageSaveOverlayClose.addEventListener('click', function (e) {
+      e.stopPropagation();
+      track('save_image_overlay_close');
+      hideImageSaveOverlay();
+    });
+  }
+  if (imageSaveOverlay) {
+    // オーバーレイ自体（背景）タップでも閉じる。img への long-press と区別するため
+    // target が overlay 自身か hint 要素のときだけ閉じる。
+    imageSaveOverlay.addEventListener('click', function (e) {
+      if (e.target === imageSaveOverlay
+          || (e.target.classList && e.target.classList.contains('image-save-overlay__hint'))) {
+        track('save_image_overlay_backdrop_close');
+        hideImageSaveOverlay();
+      }
+    });
+  }
 
   // タイプ詳細シート
   document.getElementById('typeModalClose').addEventListener('click', function () {

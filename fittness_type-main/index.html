@@ -45,7 +45,7 @@
     <meta name="twitter:image:alt" content="運動アニマル図鑑 — 4つの軸から、16アニマルの運動スタイルを判定" />
     <link rel="stylesheet" href="tokens.css?v=exercise-t2" />
     <link rel="stylesheet" href="components.css?v=exercise-c13" />
-    <link rel="stylesheet" href="styles.css?v=exercise-v282" />
+    <link rel="stylesheet" href="styles.css?v=exercise-v283" />
   </head>
   <body class="app-booting">
     <!-- ═══════════════ Welcome ═══════════════ -->
@@ -380,6 +380,66 @@
       </div>
     </div>
 
+    <!-- ═══════════════ アプリ内ブラウザ用ガイダンス ═══════════════
+         LINE/Instagram/X/Facebook 等の WebView は <a download> や Web Share API
+         が制限されており、画像保存に失敗するケースがある。
+         検出時はこのダイアログでアプリ別の手順を案内する。 -->
+    <div class="modal-bg" id="inAppDownloadHelpDialog" data-clarity-unmask="true" hidden>
+      <div class="modal modal--share">
+        <button
+          type="button"
+          class="modal__close"
+          id="inAppDownloadHelpDismiss"
+          aria-label="閉じる"
+        >
+          ×
+        </button>
+        <div class="modal__icon" aria-hidden="true">!</div>
+        <h2 id="inAppDownloadHelpTitle">画像を保存するには</h2>
+        <p
+          id="inAppDownloadHelpBody"
+          style="font-size:14px;line-height:1.7;color:var(--ink);font-weight:600;margin:8px 0 4px;text-align:left;"
+        ></p>
+        <div class="modal__actions">
+          <button
+            type="button"
+            class="btn btn--share-save is-promise"
+            id="inAppDownloadHelpShowImage"
+          >
+            画像を表示して長押し保存
+          </button>
+          <button
+            type="button"
+            class="btn btn--secondary"
+            id="inAppDownloadHelpExternal"
+          >
+            外部ブラウザで開く
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════ 画像プレビューオーバーレイ（長押し保存用）═══════════════
+         どの WebView でも 100% 動作する保存手段として、生成済み PNG を画面いっぱいに表示し
+         iOS/Android のネイティブ「画像を保存」コンテキストメニューを促す。 -->
+    <div class="image-save-overlay" id="imageSaveOverlay" hidden>
+      <button
+        type="button"
+        class="image-save-overlay__close"
+        id="imageSaveOverlayClose"
+        aria-label="閉じる"
+      >
+        ×
+      </button>
+      <p class="image-save-overlay__hint">
+        画像を長押しして「写真に保存」を選択してください
+      </p>
+      <img class="image-save-overlay__img" id="imageSaveOverlayImg" alt="診断結果" />
+      <p class="image-save-overlay__hint image-save-overlay__hint--bottom">
+        保存後は右上の × で閉じる
+      </p>
+    </div>
+
     <!-- ═══════════════ Global Site Footer (legal links) ═══════════════ -->
     <footer class="site-footer" role="contentinfo">
       <small class="site-footer__copy">© 運動アニマル図鑑</small>
@@ -397,6 +457,6 @@
     <script src="chars-data.js?v=exercise-ch21"></script>
     <!-- Supabase（フィットネスアニマル）: Project URL + anon（公開前提） -->
     <script src="supabase-config.js?v=fitness-animal-1"></script>
-    <script src="content-loader.js?v=exercise-cl23"></script>
+    <script src="content-loader.js?v=exercise-cl24"></script>
   </body>
 </html>
