@@ -198,14 +198,14 @@
    * 仕様:
    *   - 5%きざみのバケット化はせず、1%単位の整数 % で表示（純粋な比率）
    *   - 端数（例: |sum|=1 → 2.5%）は Math.round で整数化
-   *   - `Math.max(5, …)` は「同点でも軸に何らかの方向性を表示する」下限ガード
-   *     （|sum|=1 のような極小値が 0% に潰れて見えなくなるのを防ぐ）
+   *   - `Math.max(10, …)` は「同点でも軸に何らかの方向性を表示する」下限ガード
+   *     （|sum|=1〜3 のような極小値が視認できる長さに届かないのを防ぐ）
    */
   function normalizeAxis(n) {
-    if (!n) return 5; // 保険: computeAxisData の段階で sum=0 は ±1 に解決済み
+    if (!n) return 10; // 保険: computeAxisData の段階で sum=0 は ±1 に解決済み
     var sign = n > 0 ? 1 : -1;
     var pct = Math.round((Math.abs(n) / 40) * 100);
-    return sign * Math.max(5, Math.min(100, pct));
+    return sign * Math.max(10, Math.min(100, pct));
   }
 
   // ── 診断結果の保存（sessionStorage／同一タブ内でリロード・図鑑往復でも4軸を復元） ──
