@@ -386,12 +386,10 @@
   }
 
   function bootErr(e) {
+    // 詳細はコンソールのみに残し、DOM には実装詳細を露出しない
     console.error('[content-loader]', e);
     document.body &&
-      document.body.setAttribute(
-        'data-content-error',
-        String((e && e.message) || e || 'unknown'),
-      );
+      document.body.setAttribute('data-content-error', 'content_load_failed');
   }
 
   function loadApp() {
