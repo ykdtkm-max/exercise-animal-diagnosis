@@ -1498,11 +1498,14 @@
     } else if (userSums &&
         typeof userSums.structure === 'number' &&
         typeof userSums.intensity === 'number') {
-      // ユーザー回答ベースの動的位置（軸合計 ±24 を中央 ±30% にマッピング → 20-80% にクランプ）
-      // P(計画)=+ で右側に伸ばすため、structure を加算する向きで反映する。
-      var clamp = function (v, mn, mx) { return Math.max(mn, Math.min(mx, v)); };
-      leftPct = Math.round(clamp(50 + (userSums.structure / 24) * 30, 20, 80));
-      topPct  = Math.round(clamp(50 - (userSums.intensity / 24) * 30, 20, 80));
+      // 4軸プロフィールバーと同じ normalizeAxis() (±100) を使い、チャートの 10–90% に
+      // マッピング（ピン全体が端でも完全に見える）。span=40 が 50±40=[10..90]% を意味する。
+      // P(計画)=正 → 右、F(気分)=負 → 左 / D(高める)=正 → 上、C(整える)=負 → 下
+      var nx = normalizeAxis(userSums.structure);
+      var ny = normalizeAxis(userSums.intensity);
+      var span = 40;
+      leftPct = Math.round(50 + (nx / 100) * span);
+      topPct  = Math.round(50 - (ny / 100) * span);
     } else {
       // MOTION_FIT.plan は +2=突発(F) / -2=計画(P) の向きで定義されているため、
       // 計画(P)を右に置く新レイアウトでは上下反転して leftPct を計算する。
