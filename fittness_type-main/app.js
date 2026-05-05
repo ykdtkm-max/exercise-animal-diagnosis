@@ -867,25 +867,6 @@
     );
   }
 
-  function buildCompatSection(compat) {
-    var goodItems = (compat && compat.good) || [];
-    var badItems  = (compat && compat.bad)  || [];
-    var inner = '';
-    if (goodItems.length) inner += compatCard(goodItems[0], 'pill--good', '最強タッグ');
-    if (badItems.length)  inner += compatCard(badItems[0],  'pill--care', '真反対ペア');
-    if (!inner) inner = '<p style="font-size:13px;color:var(--ink-mute);">相性データがありません。</p>';
-    return (
-      '<div class="sec">' +
-        '<div class="sec__head">' +
-          '<span class="num">05</span>' +
-          '<h3>アニマル相性</h3>' +
-          '<span class="deco"></span>' +
-        '</div>' +
-        '<div class="compat">' + inner + '</div>' +
-      '</div>'
-    );
-  }
-
   // ── 軸バー HTML ──────────────────────────────────────────────────────────────
   /** 診断未完了などでタイプのみ表示するときの見本用ダミースコア（実データではない・見た目のサンプルのみ） */
   var SAMPLE_AXIS_SUMS_FOR_UI = {
@@ -964,57 +945,6 @@
     return '<div class="axes axes--sample">' + rows + overlay + '</div>';
   }
 
-  // ── 継続コツをリスト化 ────────────────────────────────────────────────────────
-  function buildTipsHtml(text) {
-    var sentences = text.split('。')
-      .map(function (s) { return s.trim(); })
-      .filter(function (s) { return s.length > 15; })
-      .slice(0, 3);
-
-    var html = '<div class="tips">';
-    sentences.forEach(function (s, i) {
-      html +=
-        '<div class="tip">' +
-          '<div class="tip__num">' + (i + 1) + '</div>' +
-          '<div class="tip__text">' + escapeHtml(s + '。') + '</div>' +
-        '</div>';
-    });
-    html += '</div>';
-    return html;
-  }
-
-  // ── おすすめ運動セクション ─────────────────────────────────────────────────────
-  var SUIT_EMOJI = ['🌳','🎵','🚲','💪','🏊','🏃','🧘','🎾','⚽','🥊','🏔️','🤸'];
-
-  function buildSuggestHtml(suitText) {
-    // suit_text から「・」区切りの最初の文章の運動名を抽出
-    var firstSentence = suitText.split('。')[0] || '';
-    var items = firstSentence.split('・')
-      .map(function (s) { return s.trim().replace(/^。+|。+$/g, ''); })
-      .filter(function (s) { return s.length > 1 && s.length < 20; })
-      .slice(0, 4);
-
-    if (items.length < 2) {
-      // フォールバック: テキストカードで表示
-      return '<div class="desc-card"><p>' + escapeHtml(suitText) + '</p></div>';
-    }
-
-    // 4つ揃えるためにパディング
-    while (items.length < 4) items.push('その他の運動');
-
-    var html = '<div class="suggest">';
-    items.forEach(function (name, i) {
-      html +=
-        '<div class="suggest__item">' +
-          '<div class="suggest__icon">' + (SUIT_EMOJI[i] || '🏅') + '</div>' +
-          '<div class="suggest__name">' + escapeHtml(name) + '</div>' +
-          '<div class="suggest__hint">おすすめ</div>' +
-        '</div>';
-    });
-    html += '</div>';
-    return html;
-  }
-
   function isSecretCompatibilityUnlocked() {
     return getShareCompletionCount(loadShareProgress()) >= 3;
   }
@@ -1073,26 +1003,6 @@
     } catch (e) {
       return null;
     }
-  }
-
-  function compatBlocksToPlainForPill(blocks) {
-    if (!blocks || !blocks.length) return '';
-    var s = '';
-    blocks.forEach(function (b) {
-      if (!b || !b.t) return;
-      if (b.t === 'p') s += String(b.text || '') + '\n';
-      else if (b.t === 'ul' || b.t === 'ol') {
-        (b.items || []).forEach(function (it) { s += String(it || '') + '\n'; });
-      } else if (b.t === 'q') {
-        (b.lines || []).forEach(function (ln) { s += String(ln || '') + '\n'; });
-      } else if (b.t === 'pre') s += String(b.text || '') + '\n';
-    });
-    return s;
-  }
-
-  /** raw already escapeHtml-safe; inserts <strong> for **…** spans */
-  function compatInlineBoldOnEscaped(rawEscaped) {
-    return String(rawEscaped || '').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
   }
 
   function stripCompatMarkdownText(text) {
@@ -1214,20 +1124,6 @@
         innerHtml +
       '</div>'
     );
-  }
-
-  function renderSecretCompatTips(items) {
-    if (!items || !items.length) return '';
-    var html = '<div class="tips">';
-    items.forEach(function (text, i) {
-      html +=
-        '<div class="tip">' +
-          '<div class="tip__num">' + (i + 1) + '</div>' +
-          '<div class="tip__text">' + escapeHtml(replaceTypeCodes(text)) + '</div>' +
-        '</div>';
-    });
-    html += '</div>';
-    return html;
   }
 
   /** リスト項目を 。区切りの1段落文字列に結合する */
@@ -3844,12 +3740,6 @@
       storageRemove('session', STORAGE_KEY_SHARE_CHANNELS_LEGACY);
     }
     return saved;
-  }
-
-  function getShareDisplayTier(channel, p) {
-    var tier = getLockedShareTier(channel, p);
-    if (tier != null) return tier;
-    return Math.min(countDistinctShareTiers(p) + 1, 3);
   }
 
   function getShareActionMode(channel) {
