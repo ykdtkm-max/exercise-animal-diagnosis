@@ -1548,10 +1548,15 @@
     var pinCls = 'motion-fit__pin motion-fit__pin--' + dir;
     // 図鑑モードでは象限背景がチャート側にあるため、キャラの円形 tint 背景は出さない
     var pinCharStyle = quadrant ? '' : ' style="background:' + tint + ';"';
+    // 図鑑モードでは「ここだよ！」吹き出しは出さない（4象限の塗りで一目で伝わるため、
+    // ラベルは冗長になり、キャラのすぐ上の余白が詰まる方が見やすい）。
+    var bubbleHtml = quadrant
+      ? ''
+      : '<div class="motion-fit__pin-bubble" style="--bubble-bg:' + tint + '">ここだよ！</div>';
     var pinHtml = sample
       ? ''
       : '<div class="' + pinCls + '" style="left:' + leftPct + '%;top:' + topPct + '%;">' +
-          '<div class="motion-fit__pin-bubble" style="--bubble-bg:' + tint + '">ここだよ！</div>' +
+          bubbleHtml +
           '<div class="motion-fit__pin-char"' + pinCharStyle + '>' +
             charImgFullHtml(code) +
           '</div>' +
