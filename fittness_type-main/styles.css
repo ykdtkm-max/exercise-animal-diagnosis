@@ -111,7 +111,7 @@ body.app-booting {
   padding: 0;
 }
 #screenWelcome .cluster {
-  height: clamp(180px, 23.4svh, 306px);
+  height: clamp(198px, 25.7svh, 336px);
   flex: none;
   min-height: 0;
   max-height: none;
