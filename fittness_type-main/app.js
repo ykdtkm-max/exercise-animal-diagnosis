@@ -2708,15 +2708,36 @@
     var img = document.getElementById('imageSaveOverlayImg');
     if (!overlay || !img) return false;
     try {
-      // 既存 Object URL があれば解放してから差し替え
-      if (imageSaveOverlayUrl) {
-        try { URL.revokeObjectURL(imageSaveOverlayUrl); } catch (_) {}
-      }
-      imageSaveOverlayUrl = URL.createObjectURL(blob);
-      img.src = imageSaveOverlayUrl;
+      // オーバーレイを先に表示してスクロール抑制
       overlay.hidden = false;
-      // body スクロール抑制
       document.body.style.overflow = 'hidden';
+      img.removeAttribute('src');
+
+      // FileReader で data URL に変換して img.src に設定する。
+      // blob: URL は Android WebView の long-press コンテキストメニューで
+      // 「画像を保存」が出ないケースがあるため、data URL を優先する。
+      if (typeof FileReader === 'function') {
+        var reader = new FileReader();
+        reader.onload = function () {
+          img.src = reader.result;
+        };
+        reader.onerror = function () {
+          // FileReader 失敗時は旧来の blob URL へフォールバック
+          if (imageSaveOverlayUrl) {
+            try { URL.revokeObjectURL(imageSaveOverlayUrl); } catch (_) {}
+          }
+          imageSaveOverlayUrl = URL.createObjectURL(blob);
+          img.src = imageSaveOverlayUrl;
+        };
+        reader.readAsDataURL(blob);
+      } else {
+        // FileReader 非対応環境 (ごく稀) は blob URL にフォールバック
+        if (imageSaveOverlayUrl) {
+          try { URL.revokeObjectURL(imageSaveOverlayUrl); } catch (_) {}
+        }
+        imageSaveOverlayUrl = URL.createObjectURL(blob);
+        img.src = imageSaveOverlayUrl;
+      }
       return true;
     } catch (_e) {
       return false;
@@ -2750,11 +2771,20 @@
   }
 
   function buildInAppHelpBody(inApp) {
+    var isAndroid = /Android/i.test((navigator && navigator.userAgent) || '');
     if (inApp === 'line') {
+      if (isAndroid) {
+        // Android LINE: Chrome 経由が最も確実。長押し保存は補助手段として案内。
+        return 'Android の LINE 内ブラウザでは画像の直接保存が制限されています。<br />' +
+          '下の「<b>Chrome で開く</b>」ボタンを押して Chrome でページを開き直し、<br />' +
+          '再度「保存」ボタンをタップしてください（最もかんたんな方法です）。<br />' +
+          '<small>または「画像を表示して長押し保存」→ 画像を長押し → 「画像を保存」でも保存できます。</small>';
+      }
+      // iOS LINE
       return 'LINE 内のブラウザでは画像の直接ダウンロードが制限されています。<br />' +
         '下の「<b>画像を表示して長押し保存</b>」ボタンを押し、<br />' +
         '表示された画像を<b>長押し</b>して「写真に保存」を選んでください。<br />' +
-        '<small>※ 通常ブラウザ (Safari / Chrome) で開き直したい場合は「外部ブラウザで開く」を押してください。</small>';
+        '<small>※ 通常ブラウザ (Safari) で開き直したい場合は「外部ブラウザで開く」を押してください。</small>';
     }
     return inAppDisplayName(inApp) + ' のアプリ内ブラウザでは画像の直接ダウンロードが制限されています。<br />' +
       '下の「<b>画像を表示して長押し保存</b>」ボタンを押し、<br />' +
@@ -2765,15 +2795,43 @@
     inAppHelpState.blob = blob;
     inAppHelpState.filename = filename;
     inAppHelpState.inApp = inApp;
+    var isAndroid = /Android/i.test((navigator && navigator.userAgent) || '');
     var dialog = document.getElementById('inAppDownloadHelpDialog');
     var body = document.getElementById('inAppDownloadHelpBody');
+    var showImageBtn = document.getElementById('inAppDownloadHelpShowImage');
     var externalBtn = document.getElementById('inAppDownloadHelpExternal');
     if (body) body.innerHTML = buildInAppHelpBody(inApp);
     if (externalBtn) {
-      externalBtn.textContent = inApp === 'line' ? 'Safari / Chrome で開く' : 'メニューの手順を確認';
+      externalBtn.textContent = inApp === 'line'
+        ? (isAndroid ? 'Chrome で開く' : 'Safari / Chrome で開く')
+        : 'メニューの手順を確認';
       externalBtn.disabled = inApp !== 'line';
-      // LINE 以外は実機メニュー操作が必要なので押せない見た目に
       externalBtn.style.opacity = inApp === 'line' ? '' : '0.45';
+    }
+    // Android LINE: 「Chrome で開く」を primary ボタン、「長押し保存」を secondary に並び替え
+    if (inApp === 'line' && isAndroid) {
+      if (externalBtn) {
+        externalBtn.style.order = '-1';
+        externalBtn.classList.add('btn--share-save');
+        externalBtn.classList.remove('btn--secondary');
+      }
+      if (showImageBtn) {
+        showImageBtn.style.order = '0';
+        showImageBtn.classList.add('btn--secondary');
+        showImageBtn.classList.remove('btn--share-save', 'is-promise');
+      }
+    } else {
+      // それ以外はデフォルト順序に戻す（念のため）
+      if (externalBtn) {
+        externalBtn.style.order = '';
+        externalBtn.classList.remove('btn--share-save');
+        externalBtn.classList.add('btn--secondary');
+      }
+      if (showImageBtn) {
+        showImageBtn.style.order = '';
+        showImageBtn.classList.remove('btn--secondary');
+        showImageBtn.classList.add('btn--share-save', 'is-promise');
+      }
     }
     if (dialog) dialog.hidden = false;
     track('save_image_inapp_help_' + inApp);
@@ -2820,6 +2878,13 @@
    * 戻り値: Promise<boolean>。`false` はキャンセル/未完了で、celebration を発火させない。
    */
   function saveBlobAsPng(blob, filename) {
+    // SNS アプリ内 WebView (LINE / Instagram / Facebook 等) では
+    // navigator.canShare が true を返しても navigator.share が
+    // シェアシートを表示しないか無音で失敗するケースがあるため、
+    // 先にヘルプダイアログへ直行させる。
+    if (detectInAppBrowser()) {
+      return Promise.resolve(fallbackSave(blob, filename));
+    }
     // 1) Web Share API Level 2
     // iOS Safari は files と text/url を同時に渡すと TypeError になるため files 単体で渡す。
     // navigator.canShare 自体が無いブラウザ (古い Android Chrome 等) もスキップ。
