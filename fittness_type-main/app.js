@@ -2610,9 +2610,11 @@
    * @returns {number} ロゴ群の Y 下端（呼び出し側がレイアウト計算に利用）
    */
   function drawStoryBrandLogo(ctx, centerX, baselineTopY, brandImg) {
-    var iconSize = 76;   // PC 36px → 1080px 幅で約 2.1× スケール
-    var fontSize = 56;   // PC 20px → 1080px 幅で約 2.8× スケール
-    var gap = 14;        // アイコンと文字の間隔（PC 7px の約 2× ）
+    // 結果 PNG (1080×1350) で「診断日」を最下部に確実に収めるため、ブランドロゴ
+    // ブロックを少し小さくしてキャンバス上部の占有を抑える（旧: 76 / 56）。
+    var iconSize = 64;   // アイコン (旧 76)
+    var fontSize = 48;   // 「運動アニマル図鑑」(旧 56)
+    var gap = 12;        // アイコンと文字の間隔（旧 14。アイコン縮小に追随） 
 
     ctx.save();
     ctx.textBaseline = 'middle';
@@ -2980,9 +2982,11 @@
           GAP_AFTER_HERO = Math.max(30, Math.min(38, GAP_AFTER_HERO));
 
           // ─ ブランドロゴ部（サイトヘッダー流儀）
-          var BRAND_LOGO_TOP_PAD = 56;       // canvas 上端からのゆとり
-          var BRAND_LOGO_HEIGHT = 76;        // drawStoryBrandLogo 内の iconSize と一致
-          var BRAND_BOTTOM_TO_HERO_GAP = 48; // ロゴブロック下端〜ヒーロー頭
+          // 旧: 56 / 76 / 48。最下部の「診断日」が枠から切れる事象に対応するため、
+          // 上下のゆとりとアイコン高を少しずつ詰めて 36px ぶん上方向にスペースを確保。
+          var BRAND_LOGO_TOP_PAD = 40;       // canvas 上端からのゆとり (旧 56)
+          var BRAND_LOGO_HEIGHT = 64;        // drawStoryBrandLogo 内の iconSize と一致 (旧 76)
+          var BRAND_BOTTOM_TO_HERO_GAP = 36; // ロゴブロック下端〜ヒーロー頭 (旧 48)
 
           var heroY = BRAND_LOGO_TOP_PAD + BRAND_LOGO_HEIGHT + BRAND_BOTTOM_TO_HERO_GAP;
           var targetHeroH = 520;
