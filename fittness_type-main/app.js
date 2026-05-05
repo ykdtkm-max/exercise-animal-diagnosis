@@ -4293,7 +4293,7 @@
     if (state.screen !== 'quiz') return;
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
     var k = e.key;
-    if (k >= '1' && k <= '7') { e.preventDefault(); selectOption(parseInt(k, 10) - 1); }
+    if (k >= '1' && k <= '6') { e.preventDefault(); selectOption(parseInt(k, 10) - 1); }
   });
 
   // hashchange / pageshow
