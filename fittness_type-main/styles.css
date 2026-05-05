@@ -154,7 +154,7 @@ body.app-booting {
   height: 8px; background: var(--yellow); z-index: -1; border-radius: 4px;
 }
 .hero__subtitle {
-  margin: 14px auto 0;
+  margin: 14px auto 10px;
   text-align: center;
   font-size: clamp(13px, 3.6vw, 15px);
   font-weight: 700;
