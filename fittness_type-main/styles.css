@@ -2183,3 +2183,26 @@ body.celebration-locked {
 .site-footer__link:hover {
   color: var(--ink, #2b2535);
 }
+
+/* ────────────────────────────────────────────────────────────────
+ * アクセシビリティ: prefers-reduced-motion 対応
+ * OS / ブラウザでアニメ抑制が指定されているユーザーには、
+ * 装飾系の無限アニメーションと長時間トランジションを無効化する。
+ * ──────────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .float,
+  .float--c,
+  .sparkle,
+  .strip__track {
+    animation: none !important;
+  }
+}
+
