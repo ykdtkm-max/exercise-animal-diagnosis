@@ -163,7 +163,7 @@ body.app-booting {
   line-height: 1.6;
 }
 /* キャラクタークラスター */
-.cluster { position: relative; height: 198px; margin: 8px 0 4px; }
+.cluster { position: relative; height: 218px; margin: 8px 0 4px; }
 .float { position: absolute; border-radius: 50%; display: grid; place-items: center; overflow: hidden; animation: bob 4.5s ease-in-out infinite; }
 .float img { width: 82%; height: 82%; object-fit: contain; }
 .float--center {
