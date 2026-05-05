@@ -1472,17 +1472,30 @@
    *   （-24〜+24）。指定された場合は MOTION_FIT[code] の代わりに動的位置を計算する。
    *   - x 軸: structure → +(P) なら右=計画、-(F) なら左=気分
    *   - y 軸: intensity → +(D) なら上=高める、-(C) なら下=整える
-   * @param {{sample?:boolean}} [opts] - 診断結果がない場合のサンプル表示モード。
-   *   true のときはピンと運動スタイル説明文を出さず、「見本です / 診断後はあなたの
-   *   結果が表示されます」オーバーレイを重ねる。
+   * @param {{sample?:boolean, quadrant?:boolean}} [opts]
+   *   - sample: 診断結果がない場合のサンプル表示モード。true のときはピンと
+   *     運動スタイル説明文を出さず、「見本です / 診断後はあなたの結果が表示されます」
+   *     オーバーレイを重ねる。
+   *   - quadrant: 図鑑（タイプ詳細）モード。各キャラがどの象限に属するかが
+   *     一意に決まるため、ピンを象限中央に配置し、象限の背景全体をキャラ色で
+   *     塗ってアイコンの影も外す（"このキャラはこの象限"が一目で伝わる表示）。
    */
   function buildMotionFitChart(code, userSums, opts) {
     var ch = CHARS()[code];
     if (!ch) return '';
     var sample = !!(opts && opts.sample);
+    var quadrant = !sample && !!(opts && opts.quadrant);
     var tint = safeCssColor(ch && ch.tint, '#FFE9C2');
     var leftPct, topPct;
-    if (userSums &&
+    if (quadrant) {
+      // 図鑑モード: MOTION_FIT[code] の符号で象限を判定し、各象限の中心(25%/75%)に固定配置
+      // plan>0 → F(気分=左)、plan<0 → P(計画=右)
+      // goal>0 → D(高める=上)、goal<0 → C(整える=下)
+      var qfit = MOTION_FIT[code];
+      if (!qfit) return '';
+      leftPct = qfit.plan > 0 ? 25 : 75;
+      topPct  = qfit.goal > 0 ? 25 : 75;
+    } else if (userSums &&
         typeof userSums.structure === 'number' &&
         typeof userSums.intensity === 'number') {
       // ユーザー回答ベースの動的位置（軸合計 ±24 を中央 ±30% にマッピング → 20-80% にクランプ）
@@ -1522,10 +1535,20 @@
           '</p>' +
         '</div>'
       : '';
+    // 図鑑モードのみ：該当象限の背景塗り（半分×半分の矩形を絶対配置）
+    var quadrantBgHtml = '';
+    if (quadrant) {
+      var qLeft = leftPct < 50 ? '0' : '50%';
+      var qTop  = topPct  < 50 ? '0' : '50%';
+      quadrantBgHtml = '<div class="motion-fit__quadrant-bg" style="left:' + qLeft +
+        ';top:' + qTop + ';background:' + tint + ';"></div>';
+    }
     var descHtml = !sample && MOTION_STYLE_TEXTS[code]
       ? '<div class="motion-fit__desc"><p>' + escapeHtml(MOTION_STYLE_TEXTS[code]) + '</p></div>'
       : '';
-    var rootCls = sample ? 'motion-fit motion-fit--sample' : 'motion-fit';
+    var rootCls = 'motion-fit'
+      + (sample ? ' motion-fit--sample' : '')
+      + (quadrant ? ' motion-fit--quadrant' : '');
     return (
       '<div class="' + rootCls + '">' +
         '<div class="motion-fit__wrap">' +
@@ -1536,6 +1559,7 @@
           '<div class="motion-fit__mid">' +
             '<span class="motion-fit__label mf-left">気分 ◀</span>' +
             '<div class="motion-fit__chart">' +
+              quadrantBgHtml +
               '<div class="motion-fit__axis-h"></div>' +
               '<div class="motion-fit__axis-v"></div>' +
               pinHtml +
@@ -2805,7 +2829,7 @@
           '<h3>運動スタイル</h3>' +
           '<span class="deco"></span>' +
         '</div>' +
-        buildMotionFitChart(code || t.code) +
+        buildMotionFitChart(code || t.code, null, { quadrant: true }) +
       '</div>' +
       secText(3, '続けるコツ',         t.continuation_title, t.continuation_text) +
       compatHtml
