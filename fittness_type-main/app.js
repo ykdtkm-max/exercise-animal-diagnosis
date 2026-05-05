@@ -2774,12 +2774,12 @@
     return inAppDisplayName(inApp) + ' 内のブラウザでは直接保存できないため、ブラウザを切り替えてもう一度「保存」をタップしてください。';
   }
 
-  function showInAppDownloadHelpDialog(inApp, blob, filename) {
+  function showInAppDownloadHelpDialog(inApp, blob, filename, minHeight) {
     inAppHelpState.blob = blob;
     inAppHelpState.filename = filename;
     inAppHelpState.inApp = inApp;
-    var isAndroid = /Android/i.test((navigator && navigator.userAgent) || '');
     var dialog = document.getElementById('inAppDownloadHelpDialog');
+    var innerModal = dialog ? dialog.querySelector('.modal') : null;
     var body = document.getElementById('inAppDownloadHelpBody');
     var externalBtn = document.getElementById('inAppDownloadHelpExternal');
     if (body) body.innerHTML = buildInAppHelpBody(inApp);
@@ -2787,12 +2787,16 @@
       externalBtn.disabled = inApp !== 'line';
       externalBtn.style.opacity = inApp === 'line' ? '' : '0.45';
     }
+    // シェアモーダルと同じ高さに強制
+    if (innerModal) innerModal.style.minHeight = minHeight ? minHeight + 'px' : '';
     if (dialog) dialog.hidden = false;
     track('save_image_inapp_help_' + inApp);
   }
 
   function hideInAppDownloadHelpDialog() {
     var dialog = document.getElementById('inAppDownloadHelpDialog');
+    var innerModal = dialog ? dialog.querySelector('.modal') : null;
+    if (innerModal) innerModal.style.minHeight = '';
     if (dialog) dialog.hidden = true;
   }
 
@@ -4444,9 +4448,12 @@
     // in-app ブラウザ検知済みの場合: モーダルを閉じ → シェアセクションへスクロール → ヘルプダイアログ表示
     if (btn && btn.dataset.inappMode === '1') {
       var inApp = detectInAppBrowser();
+      // 閉じる前にシェアモーダルの高さを取得
+      var shareInner = document.querySelector('#instagramShareDialog .modal');
+      var capturedH = shareInner ? shareInner.offsetHeight : 0;
       closeShareSaveDialog();
       scrollToShareSection(function() {
-        showInAppDownloadHelpDialog(inApp, null, null);
+        showInAppDownloadHelpDialog(inApp, null, null, capturedH);
       });
       return;
     }
