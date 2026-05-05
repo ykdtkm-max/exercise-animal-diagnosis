@@ -2771,8 +2771,7 @@
   }
 
   function buildInAppHelpBody(inApp) {
-    return inAppDisplayName(inApp) + ' 内のブラウザでは画像の直接保存ができません。<br />' +
-      '下のボタンで Safari / Chrome に切り替えてから、もう一度「保存」をタップしてください。';
+    return inAppDisplayName(inApp) + ' 内のブラウザでは直接保存できないため、ブラウザを切り替えてもう一度「保存」をタップしてください。';
   }
 
   function showInAppDownloadHelpDialog(inApp, blob, filename) {
@@ -2785,7 +2784,6 @@
     var externalBtn = document.getElementById('inAppDownloadHelpExternal');
     if (body) body.innerHTML = buildInAppHelpBody(inApp);
     if (externalBtn) {
-      externalBtn.textContent = isAndroid ? 'Chrome で開く' : 'Safari / Chrome で開く';
       externalBtn.disabled = inApp !== 'line';
       externalBtn.style.opacity = inApp === 'line' ? '' : '0.45';
     }
@@ -4085,8 +4083,15 @@
     var primary = document.getElementById('instagramSaveImage');
     var secondary = document.getElementById('instagramShareClose');
     var isInitial = mode === 'initial';
+    var inApp = detectInAppBrowser();
     if (primary) {
-      primary.textContent = isInitial ? '画像を保存する' : 'シェアを約束する';
+      if (inApp && isInitial) {
+        primary.textContent = 'ブラウザを開いて保存する';
+        primary.dataset.inappMode = '1';
+      } else {
+        primary.textContent = isInitial ? '画像を保存する' : 'シェアを約束する';
+        primary.dataset.inappMode = '';
+      }
       primary.classList.add('is-promise');
       primary.classList.remove('is-save');
     }
@@ -4097,6 +4102,13 @@
       secondary.classList.remove('is-save');
       secondary.classList.remove('is-promise');
     }
+  }
+
+  function scrollToShareSection(callback) {
+    var target = document.querySelector('.result-actions__share-card');
+    if (!target) { if (callback) callback(); return; }
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setTimeout(function() { if (callback) callback(); }, 650);
   }
 
   function openShareSaveDialog(channel) {
@@ -4429,6 +4441,15 @@
 
   function handlePrimaryShareAction() {
     var btn = document.getElementById('instagramSaveImage');
+    // in-app ブラウザ検知済みの場合: モーダルを閉じ → シェアセクションへスクロール → ヘルプダイアログ表示
+    if (btn && btn.dataset.inappMode === '1') {
+      var inApp = detectInAppBrowser();
+      closeShareSaveDialog();
+      scrollToShareSection(function() {
+        showInAppDownloadHelpDialog(inApp, null, null);
+      });
+      return;
+    }
     if (getShareActionMode(currentShareChannel) === 'initial') {
       saveShareImageFromDialog(btn, { record:true, close:true });
       return;
