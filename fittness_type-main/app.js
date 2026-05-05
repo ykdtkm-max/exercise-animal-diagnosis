@@ -2850,17 +2850,6 @@
     // 次へボタン
     var canGoNext = i < state.maxReachedIndex && i < questions.length - 1;
     el.qNext.classList.toggle('hidden', !canGoNext);
-
-    // コンパニオンメッセージ
-    var msgEl = document.getElementById('companionMsg');
-    if (msgEl) {
-      var remaining = total - (i + 1);
-      if (remaining > 0) {
-        msgEl.innerHTML = 'あと <b>' + remaining + '問</b>！ ゆっくりでいいよ〜';
-      } else {
-        msgEl.textContent = 'すべて回答完了！ 診断できるよ〜';
-      }
-    }
   }
 
   var advanceTimer = null;
