@@ -3057,18 +3057,9 @@
     var myCode = root.getAttribute('data-my-code') || state.lastCode;
     var result = root.querySelector('#secretCompatibilityResult');
     if (!result) return;
-    var activeColor = '';
     root.querySelectorAll('[data-secret-compat-code]').forEach(function (btn) {
-      var isActive = btn.getAttribute('data-secret-compat-code') === partnerCode;
-      btn.classList.toggle('is-active', isActive);
-      if (isActive) {
-        activeColor = btn.style.getPropertyValue('--picker-code-active') || '';
-      }
+      btn.classList.toggle('is-active', btn.getAttribute('data-secret-compat-code') === partnerCode);
     });
-    var picker = root.querySelector('.secret-compat-picker');
-    if (picker && activeColor) {
-      picker.style.setProperty('--picker-active-bg', activeColor.trim());
-    }
     result.innerHTML = buildSecretCompatibilityDetailHtml(myCode, partnerCode);
   }
 
