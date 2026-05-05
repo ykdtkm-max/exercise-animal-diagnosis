@@ -35,13 +35,17 @@ npx vercel deploy --prod --yes
 
 JS/CSS を更新したら以下の `?v=` を必ずバンプする:
 
-| ファイル | 場所 |
-|---------|------|
-| `styles.css?v=exercise-vNNN` | `fittness_type-main/index.html` |
-| `app.js?v=exercise-vNNN` | `fittness_type-main/content-loader.js` の `APP_SCRIPT` |
-| `chars-data.js?v=exercise-chNN` | `fittness_type-main/index.html` |
-| `content-loader.js?v=exercise-clNN` | `fittness_type-main/index.html` |
-| `tokens.css?v=exercise-tN` / `components.css?v=exercise-cNN` | `fittness_type-main/index.html` |
+| ファイル | 場所 | 現行値の例 |
+|---------|------|-----------|
+| `styles.css?v=exercise-vNNN` | `fittness_type-main/index.html` / `privacy.html` | `exercise-v277` |
+| `app.js?v=exercise-vNNN` | `fittness_type-main/content-loader.js` の `APP_SCRIPT` | `exercise-v273` |
+| `content-loader.js?v=exercise-clNN` | `fittness_type-main/index.html` | `exercise-cl22` |
+| `chars-data.js?v=exercise-chNN` | `fittness_type-main/index.html` | `exercise-ch4` |
+| `clarity-init.js?v=clarity-N` | `fittness_type-main/index.html` / `privacy.html` | `clarity-2` |
+| `tokens.css?v=exercise-tN` / `components.css?v=exercise-cNN` | `fittness_type-main/index.html` / `privacy.html` | `exercise-t2` / `exercise-c13` |
+| `OGP.png?v=animal-N` | `fittness_type-main/index.html` の og:image / twitter:image | `animal-4` |
+
+`index.html` と `privacy.html` で `styles.css?v=` がズレないように、両方同時に更新する運用とする。
 
 ## プロジェクト構造
 
