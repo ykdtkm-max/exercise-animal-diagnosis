@@ -104,8 +104,15 @@
   }
 
   // ── スコア計算 ──────────────────────────────────────────────────────────────
+  // 6段階リッカート（中立なし）→ 寄与スコア。±1/±2/±3 の離散値で、
+  // 各軸 8問 × 最大±3 ⇒ 軸合計 sum の理論レンジは ±24。
   var SCORE_BY_OPTION_INDEX = [3, 2, 1, -1, -2, -3];
-  var ZERO_TIE_WEIGHT_BY_ABS_SCORE = { 1: 1, 2: 1.2, 3: 1.5 };
+
+  // sum===0 の完全同点時に使う「強度重み」係数。
+  // 元の {1:1, 2:1.2, 3:1.5} は 1.2 が IEEE754 で厳密表現できず、
+  // 重み総和の比較で微小な浮動小数誤差が混入し得たため、10 倍した整数値に
+  // 揃える（比較関係 >/< は不変、結果に差は出ない）。
+  var ZERO_TIE_WEIGHT_BY_ABS_SCORE = { 1: 10, 2: 24, 3: 45 };
 
   function optionIndexToScore(i) { return SCORE_BY_OPTION_INDEX[i]; }
 
@@ -114,6 +121,17 @@
     return q.polarity === plus ? responseScore : -responseScore;
   }
 
+  /**
+   * 4軸の合計（sums）と件数（posCount / negCount）を計算する。
+   * sum===0 の完全同点は、後段（resolveLetter / normalizeAxis）が
+   * sum!==0 を前提にできるよう、この関数内で必ず ±1 まで決着させる:
+   *   1) 件数多数派（同意 vs 反対のカウント）
+   *   2) 強度重み多数派（|c| × ZERO_TIE_WEIGHT_BY_ABS_SCORE[|c|]）
+   *   3) それでも同点なら乱数（仕様）
+   *
+   * 件数 → 重みの順は「答えた本数の多い側を方向とみなす」現仕様。
+   * 重み比較を先にする実装案もあり得るが、現在は本数優先で確定している。
+   */
   function computeAxisData(questions, answers) {
     var sums     = { social:0, structure:0, resilience:0, intensity:0 };
     var posCount = { social:0, structure:0, resilience:0, intensity:0 };
@@ -151,28 +169,40 @@
     return { sums: sums, posCount: posCount, negCount: negCount };
   }
 
+  /**
+   * 軸の合計符号から、プラス極(G/P/V/D) / マイナス極(S/F/M/C) を決定する。
+   * computeAxisData が sum===0 を必ず ±1 に解決するため、二択のみで足りる。
+   */
   function resolveLetter(axisNum, data) {
-    var k = AXIS_KEY[axisNum];
-    var sum = data.sums[k];
-    var plus = PLUS_POLE[axisNum];
-    if (sum > 0) return plus;
-    if (sum < 0) return MINUS_POLE[axisNum];
-    if (data.posCount[k] > data.negCount[k]) return plus;
-    if (data.posCount[k] < data.negCount[k]) return MINUS_POLE[axisNum];
-    return plus;
+    var sum = data.sums[AXIS_KEY[axisNum]];
+    return sum > 0 ? PLUS_POLE[axisNum] : MINUS_POLE[axisNum];
   }
 
-  function resolveTypeCode(answers) {
-    var questions = SQ();
-    var data = computeAxisData(questions, answers);
-    return resolveLetter(1,data) + resolveLetter(2,data) + resolveLetter(3,data) + resolveLetter(4,data);
+  /**
+   * 1 度の computeAxisData 結果から 4 文字のタイプコードを組み立てる。
+   * code と sums を必ず同じ data から導出することで、両者が食い違わないこと
+   * （特に完全タイ時のランダムタイブレイクが二度引かれないこと）を保証する。
+   */
+  function typeCodeFromData(data) {
+    return (
+      resolveLetter(1, data) +
+      resolveLetter(2, data) +
+      resolveLetter(3, data) +
+      resolveLetter(4, data)
+    );
   }
 
-  /** 各軸8問×応答±3 ⇒ 最大|sum|=24 を UI 用 −100〜+100 に線形換算（5点刻みで切り上げ） */
+  /**
+   * 各軸 8問 × 応答±3 ⇒ 最大|sum|=24 を UI 用 −100〜+100 に線形換算
+   * （5刻みで Math.round 丸め）。
+   * 以前は Math.ceil で常に切り上げており、弱い傾向（|sum|=1〜5 等）が
+   * 視覚的に過大表示されるバイアスがあった。Math.round により対称化する。
+   * `Math.max(5, …)` は「同点でも軸に何らかの方向性を表示する」下限ガード。
+   */
   function normalizeAxis(n) {
-    if (!n) return 5; // スコア0は存在しない仕様（完全同点の場合は+5扱いとする）
+    if (!n) return 5; // 保険: computeAxisData の段階で sum=0 は ±1 に解決済み
     var sign = n > 0 ? 1 : -1;
-    var rounded = Math.ceil((Math.abs(n) / 24) * 100 / 5) * 5;
+    var rounded = Math.round((Math.abs(n) / 24) * 100 / 5) * 5;
     return sign * Math.max(5, Math.min(100, rounded));
   }
 
@@ -3279,8 +3309,11 @@
   }
 
   function finishQuiz() {
-    var code = resolveTypeCode(state.answers);
+    // computeAxisData は完全タイ時に乱数タイブレイクが走る確率があるため、
+    // 必ず 1 回だけ呼び、その data から code と sums を同時に導出する
+    // （二重呼び出しすると稀に code と sums の符号が食い違う）。
     var data = computeAxisData(SQ(), state.answers);
+    var code = typeCodeFromData(data);
     state.lastCode   = code;
     state.lastScores = data.sums;
     unlockType(code);
