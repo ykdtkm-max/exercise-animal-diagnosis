@@ -1865,7 +1865,17 @@ body.secret-unlocked-seen .secret-compat--intro { animation: none; }
 
 .bottom-sheet {
   position: absolute; bottom: 0; left: 0; right: 0;
-  height: 90vh; max-height: 90vh;
+  /* 上位 20% は必ず空けて × ボタンを露出させる。
+     iOS Safari / LINE WebView では `vh` がブラウザ chrome (URL バー等) を含んだ
+     最大ビューポートを返すため、90vh だとシート上端が WebView 表示領域より上に
+     はみ出して × が押せなくなる（ユーザー報告のケース）。
+     `dvh` (動的ビューポート) は現在の表示領域 (chrome 表示中なら chrome を引いた値) を
+     返すため、dvh ベースで 80% に制限すれば、URL バー表示中でも × ボタンが常に見える。
+     dvh 非対応ブラウザ向けに `vh` のフォールバックも併記する。 */
+  height: 80vh;        /* fallback */
+  height: 80dvh;       /* Safari 15.4+ / Chrome 108+ */
+  max-height: 80vh;
+  max-height: 80dvh;
   background: var(--paper); border-radius: 24px 24px 0 0;
   overflow: hidden;
   padding: 0;
