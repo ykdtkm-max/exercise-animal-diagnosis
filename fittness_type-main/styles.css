@@ -1382,6 +1382,10 @@ body.secret-unlocked-seen .secret-compat--intro { animation: none; }
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 7px;
+  padding: 12px;
+  border-radius: 16px;
+  background: var(--picker-active-bg, transparent);
+  transition: background 0.25s ease;
 }
 .secret-compat-picker__btn {
   display: flex;
@@ -1399,18 +1403,19 @@ body.secret-unlocked-seen .secret-compat--intro { animation: none; }
   font-size: 10px;
   font-weight: 800;
   cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
   box-shadow: 0 3px 0 0 rgba(43, 37, 53, 0.08);
   opacity: 0.4;
   transition: opacity 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 .secret-compat-picker__btn.is-active {
   opacity: 1;
-  color: var(--ink);
-  background: #fff;
-  box-shadow: 0 3px 0 0 rgba(43, 37, 53, 0.08);
+  color: #fff;
+  background: var(--picker-code-active, var(--ink));
+  box-shadow: 0 3px 0 0 rgba(0, 0, 0, 0.18);
 }
 .secret-compat-picker__btn.is-active .secret-compat-picker__code {
-  color: var(--picker-code-active, var(--ink));
+  color: #fff;
 }
 .secret-compat-picker__btn:focus-visible {
   opacity: 1;

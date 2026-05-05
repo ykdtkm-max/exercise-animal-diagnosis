@@ -3057,9 +3057,18 @@
     var myCode = root.getAttribute('data-my-code') || state.lastCode;
     var result = root.querySelector('#secretCompatibilityResult');
     if (!result) return;
+    var activeColor = '';
     root.querySelectorAll('[data-secret-compat-code]').forEach(function (btn) {
-      btn.classList.toggle('is-active', btn.getAttribute('data-secret-compat-code') === partnerCode);
+      var isActive = btn.getAttribute('data-secret-compat-code') === partnerCode;
+      btn.classList.toggle('is-active', isActive);
+      if (isActive) {
+        activeColor = btn.style.getPropertyValue('--picker-code-active') || '';
+      }
     });
+    var picker = root.querySelector('.secret-compat-picker');
+    if (picker && activeColor) {
+      picker.style.setProperty('--picker-active-bg', activeColor.trim());
+    }
     result.innerHTML = buildSecretCompatibilityDetailHtml(myCode, partnerCode);
   }
 
@@ -3923,7 +3932,7 @@
         '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg>' +
         '</div>' +
         '<h2 style="font-family:\'Bebas Neue\',var(--font-en),sans-serif;font-size:28px;letter-spacing:0.14em;font-weight:400;">SECRET UNLOCKED</h2>' +
-        '<p style="font-weight:600;">全１６アニマルとの相性チェックが解放されました。<br />各アニマルとの運動スタイルのマッチ度・すれ違いポイントを詳しく確認できます。</p>' +
+        '<p style="font-weight:600;">全１６アニマルとの相性診断が解放されました。<br />各アニマルとのマッチ度・摩擦ポイントを確認できます！</p>' +
         '<div class="modal__actions">' +
           '<button class="btn btn--primary" id="secretUnlockedConfirm" style="position:relative;z-index:10001;">\u76f8\u6027\u3092\u78ba\u8a8d\u3059\u308b <span class="arrow">\u2192</span></button>' +
         '</div>' +
