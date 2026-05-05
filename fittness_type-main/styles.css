@@ -788,28 +788,20 @@ body.app-booting {
   border-radius: var(--r-lg);
   overflow: visible;
 }
-/* 軸線（点線）
-   注意: 元は border-color: var(--ink-faint) (#D8D2E0) を使っていたが、白系チャート背景上で
-   薄すぎ、特に上半分はキャラピン (motion-fit__pin, z:5) や「ここだよ！」吹き出しの
-   不透明背景が視覚的に競合し、Y軸線が「消えた」ように見えるという報告があった。
-   --ink-mute (#948CA0) に格上げし、視認性を確保する。
-   ピンとの重なり位置でも線が破線として明確に読み取れる濃度。 */
+/* 軸線（点線） */
 .motion-fit__axis-h,
 .motion-fit__axis-v {
   position: absolute;
   background: none;
-  /* 軸線をピンの背面に押し戻す必要はないが、装飾なので明示的に z:1 にして
-     チャート背景 (z:auto) より上、ピン (z:5) より下に配置する。 */
-  z-index: 1;
 }
 .motion-fit__axis-h {
   top: 50%; left: 0; right: 0; height: 0;
-  border-top: 1.5px dashed var(--ink-mute);
+  border-top: 1.5px dashed var(--ink-faint);
   transform: translateY(-50%);
 }
 .motion-fit__axis-v {
   left: 50%; top: 0; bottom: 0; width: 0;
-  border-left: 1.5px dashed var(--ink-mute);
+  border-left: 1.5px dashed var(--ink-faint);
   transform: translateX(-50%);
 }
 /* ラッパー：チャートを上下左右のラベルで囲む */
@@ -1873,17 +1865,19 @@ body.secret-unlocked-seen .secret-compat--intro { animation: none; }
 
 .bottom-sheet {
   position: absolute; bottom: 0; left: 0; right: 0;
-  /* 上位 20% は必ず空けて × ボタンを露出させる。
+  /* 上側に確保する空きスペースで × ボタンを露出させる。
      iOS Safari / LINE WebView では `vh` がブラウザ chrome (URL バー等) を含んだ
      最大ビューポートを返すため、90vh だとシート上端が WebView 表示領域より上に
-     はみ出して × が押せなくなる（ユーザー報告のケース）。
-     `dvh` (動的ビューポート) は現在の表示領域 (chrome 表示中なら chrome を引いた値) を
-     返すため、dvh ベースで 80% に制限すれば、URL バー表示中でも × ボタンが常に見える。
-     dvh 非対応ブラウザ向けに `vh` のフォールバックも併記する。 */
-  height: 80vh;        /* fallback */
-  height: 80dvh;       /* Safari 15.4+ / Chrome 108+ */
-  max-height: 80vh;
-  max-height: 80dvh;
+     はみ出して × が押せなくなる（過去のユーザー報告）。
+     `dvh` (動的ビューポート) は現在の表示領域 (chrome を引いた値) を返すため、
+     dvh ベースで上限を決めれば × ボタンが常に見える。
+     高さは 88dvh = 上に 12dvh の空き。これで × は確実に見える位置にあり、
+     かつシート上の余白が広すぎず本文をしっかり見せられる。
+     dvh 非対応ブラウザ向けに `vh` のフォールバックも併記。 */
+  height: 88vh;        /* fallback */
+  height: 88dvh;       /* Safari 15.4+ / Chrome 108+ */
+  max-height: 88vh;
+  max-height: 88dvh;
   background: var(--paper); border-radius: 24px 24px 0 0;
   overflow: hidden;
   padding: 0;
