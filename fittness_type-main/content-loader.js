@@ -10,9 +10,9 @@
   'use strict';
 
   var STATIC_SCRIPTS = [
-    'types-data.js?v=exercise-v48',
+    'types-data.js?v=exercise-v49',
     'data.js?v=exercise-v9',
-    'secret-compat-detail-data.js?v=exercise-scd18',
+    'secret-compat-detail-data.js?v=exercise-scd19',
   ];
   var APP_SCRIPT = 'app.js?v=exercise-v279';
   var OPTION_LABEL_FALLBACK = [
