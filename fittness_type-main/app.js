@@ -147,7 +147,32 @@
     if (!c) return '';
     var src = safeAssetUrl(c.imgFull || c.img);
     if (!src) return '';
-    return '<img src="' + escapeAttr(src) + '" alt="' + escapeAttr(alt || c.animal) + '">';
+    return '<img src="' + escapeAttr(src) + '" alt="' + escapeAttr(alt || c.animal) + '" decoding="async">';
+  }
+
+  // 結果画面のヒーローキャラなど、優先度を上げて先に描画したいケースで使う
+  function charImgFullHtmlEager(code, alt) {
+    var c = CHARS()[code];
+    if (!c) return '';
+    var src = safeAssetUrl(c.imgFull || c.img);
+    if (!src) return '';
+    return '<img src="' + escapeAttr(src) + '" alt="' + escapeAttr(alt || c.animal) + '" decoding="async" fetchpriority="high">';
+  }
+
+  // 診断完了直後に結果画面で表示するキャラ画像をブラウザに先取り（preload）させる
+  function preloadCharacterImage(code) {
+    if (!code) return;
+    var c = CHARS()[code];
+    if (!c) return;
+    var src = safeAssetUrl(c.imgFull || c.img);
+    if (!src) return;
+    if (document.querySelector('link[rel="preload"][as="image"][href="' + src + '"]')) return;
+    var link = document.createElement('link');
+    link.rel = 'preload';
+    link.as = 'image';
+    link.href = src;
+    link.fetchPriority = 'high';
+    document.head.appendChild(link);
   }
 
   // ── スコア計算 ──────────────────────────────────────────────────────────────
@@ -1521,11 +1546,13 @@
     else if (leftPct < 40) dir = 'right';
     else if (leftPct > 60) dir = 'left';
     var pinCls = 'motion-fit__pin motion-fit__pin--' + dir;
+    // 図鑑モードでは象限背景がチャート側にあるため、キャラの円形 tint 背景は出さない
+    var pinCharStyle = quadrant ? '' : ' style="background:' + tint + ';"';
     var pinHtml = sample
       ? ''
       : '<div class="' + pinCls + '" style="left:' + leftPct + '%;top:' + topPct + '%;">' +
           '<div class="motion-fit__pin-bubble" style="--bubble-bg:' + tint + '">ここだよ！</div>' +
-          '<div class="motion-fit__pin-char" style="background:' + tint + ';">' +
+          '<div class="motion-fit__pin-char"' + pinCharStyle + '>' +
             charImgFullHtml(code) +
           '</div>' +
         '</div>';
@@ -2960,7 +2987,7 @@
     var heroCodeEl  = document.getElementById('heroCode');
     var heroCatchEl = document.getElementById('heroCatch');
 
-    if (heroCharEl  && c) heroCharEl.innerHTML    = charImgFullHtml(code);
+    if (heroCharEl  && c) heroCharEl.innerHTML    = charImgFullHtmlEager(code);
     if (heroNameEl)       heroNameEl.textContent  = t.type_name;
     if (heroCodeEl)       heroCodeEl.textContent  = code;
     if (heroCatchEl)      heroCatchEl.textContent = (t.catchphrases && t.catchphrases[0]) || t.tagline;
@@ -3270,6 +3297,8 @@
     }
     if (r.view === 'result') {
       var fromSecretCompat = state.screen === 'secretCompat';
+      // 結果画面のヒーローキャラ画像を、innerHTML より先にネットワークへ投げる
+      preloadCharacterImage(r.code || state.lastCode);
       if (r.code && TYPES()[r.code]) {
         var hasFresh =
           state.lastCode === r.code &&
@@ -3327,6 +3356,8 @@
     trackTag('result_type', code);
     track('diagnosis_complete_' + code);
     trackUpgradeSession('diagnosis_complete');
+    // ヒーローキャラ画像を先取りして、結果画面遷移時のワンテンポ遅れを軽減
+    preloadCharacterImage(code);
     setHash('/result/' + code);
     applyRoute();
   }

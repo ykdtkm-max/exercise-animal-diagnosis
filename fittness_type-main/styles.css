@@ -865,9 +865,26 @@ body.app-booting {
   place-items: center;
   box-shadow: 0 4px 10px rgba(43,37,53,.18);
 }
-/* 図鑑モード（タイプ詳細モーダル）: 象限中央配置・象限ぬり・影なし */
+/* 図鑑モード（タイプ詳細モーダル）: 象限中央配置・象限ぬり・影なし。
+   キャラは 1.5x 拡大、丸い tint 背景は非表示、吹き出しはキャラのすぐ上に。 */
+.motion-fit--quadrant .motion-fit__pin {
+  width: 89px;
+  height: 89px;
+}
 .motion-fit--quadrant .motion-fit__pin-char {
+  background: none;
   box-shadow: none;
+}
+.motion-fit--quadrant .motion-fit__pin-char img {
+  width: 100%;
+  height: 100%;
+}
+/* 図鑑モードでは「ここだよ！」をキャラのすぐ上に密着させる（::after の三角がキャラ頭に触れる） */
+.motion-fit--quadrant .motion-fit__pin--up .motion-fit__pin-bubble {
+  bottom: 100%;
+}
+.motion-fit--quadrant .motion-fit__pin--down .motion-fit__pin-bubble {
+  top: 100%;
 }
 .motion-fit__quadrant-bg {
   position: absolute;
@@ -1032,13 +1049,15 @@ body.app-booting {
 .axis-row.a-3 .axis-row__fill { background: #F2C200; }
 .axis-row.a-4 .axis-row__fill { background: var(--green); }
 
-/* 見本: コンテナ側のレイヤーやヴェイルは使わず、各行カードのみ淡くしてキャプションを重ねる */
+/* 見本: カード全体を淡くして存在感を抑え、上にキャプションを重ねる。
+   親に opacity を載せ、子要素はさらに saturate(0.26) で脱色する。
+   オーバーレイのキャプションも親のフェードに従うが、太字＋暗色なので読みやすさは確保される。 */
 .axes.axes--sample {
   position: relative;
+  opacity: 0.5;
 }
 
 .axes--sample .axis-row {
-  opacity: 0.62;
   filter: saturate(0.26);
 }
 
@@ -1070,11 +1089,14 @@ body.app-booting {
 }
 
 /* 運動スタイル（motion-fit）の見本表示 — 4軸プロフィールと同じ思想：
-   軸ラベル類は淡くし、チャート上にキャプションを重ねる。説明文（motion-fit__desc）は非表示。 */
+   カード全体を opacity で淡くし、軸ラベル類はさらに saturate(0.26) で脱色する。 */
+.motion-fit.motion-fit--sample {
+  opacity: 0.5;
+}
+
 .motion-fit.motion-fit--sample .motion-fit__label,
 .motion-fit.motion-fit--sample .motion-fit__axis-h,
 .motion-fit.motion-fit--sample .motion-fit__axis-v {
-  opacity: 0.62;
   filter: saturate(0.26);
 }
 
