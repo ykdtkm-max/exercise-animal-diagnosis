@@ -2771,24 +2771,8 @@
   }
 
   function buildInAppHelpBody(inApp) {
-    var isAndroid = /Android/i.test((navigator && navigator.userAgent) || '');
-    if (inApp === 'line') {
-      if (isAndroid) {
-        // Android LINE: Chrome 経由が最も確実。長押し保存は補助手段として案内。
-        return 'Android の LINE 内ブラウザでは画像の直接保存が制限されています。<br />' +
-          '下の「<b>Chrome で開く</b>」ボタンを押して Chrome でページを開き直し、<br />' +
-          '再度「保存」ボタンをタップしてください（最もかんたんな方法です）。<br />' +
-          '<small>または「画像を表示して長押し保存」→ 画像を長押し → 「画像を保存」でも保存できます。</small>';
-      }
-      // iOS LINE
-      return 'LINE 内のブラウザでは画像の直接ダウンロードが制限されています。<br />' +
-        '下の「<b>画像を表示して長押し保存</b>」ボタンを押し、<br />' +
-        '表示された画像を<b>長押し</b>して「写真に保存」を選んでください。<br />' +
-        '<small>※ 通常ブラウザ (Safari) で開き直したい場合は「外部ブラウザで開く」を押してください。</small>';
-    }
-    return inAppDisplayName(inApp) + ' のアプリ内ブラウザでは画像の直接ダウンロードが制限されています。<br />' +
-      '下の「<b>画像を表示して長押し保存</b>」ボタンを押し、<br />' +
-      '表示された画像を<b>長押し</b>して「写真に保存」を選んでください。';
+    return inAppDisplayName(inApp) + ' 内のブラウザでは画像の直接保存ができません。<br />' +
+      '下のボタンで Safari / Chrome に切り替えてから、もう一度「保存」をタップしてください。';
   }
 
   function showInAppDownloadHelpDialog(inApp, blob, filename) {
@@ -2798,40 +2782,12 @@
     var isAndroid = /Android/i.test((navigator && navigator.userAgent) || '');
     var dialog = document.getElementById('inAppDownloadHelpDialog');
     var body = document.getElementById('inAppDownloadHelpBody');
-    var showImageBtn = document.getElementById('inAppDownloadHelpShowImage');
     var externalBtn = document.getElementById('inAppDownloadHelpExternal');
     if (body) body.innerHTML = buildInAppHelpBody(inApp);
     if (externalBtn) {
-      externalBtn.textContent = inApp === 'line'
-        ? (isAndroid ? 'Chrome で開く' : 'Safari / Chrome で開く')
-        : 'メニューの手順を確認';
+      externalBtn.textContent = isAndroid ? 'Chrome で開く' : 'Safari / Chrome で開く';
       externalBtn.disabled = inApp !== 'line';
       externalBtn.style.opacity = inApp === 'line' ? '' : '0.45';
-    }
-    // Android LINE: 「Chrome で開く」を primary ボタン、「長押し保存」を secondary に並び替え
-    if (inApp === 'line' && isAndroid) {
-      if (externalBtn) {
-        externalBtn.style.order = '-1';
-        externalBtn.classList.add('btn--share-save');
-        externalBtn.classList.remove('btn--secondary');
-      }
-      if (showImageBtn) {
-        showImageBtn.style.order = '0';
-        showImageBtn.classList.add('btn--secondary');
-        showImageBtn.classList.remove('btn--share-save', 'is-promise');
-      }
-    } else {
-      // それ以外はデフォルト順序に戻す（念のため）
-      if (externalBtn) {
-        externalBtn.style.order = '';
-        externalBtn.classList.remove('btn--share-save');
-        externalBtn.classList.add('btn--secondary');
-      }
-      if (showImageBtn) {
-        showImageBtn.style.order = '';
-        showImageBtn.classList.remove('btn--secondary');
-        showImageBtn.classList.add('btn--share-save', 'is-promise');
-      }
     }
     if (dialog) dialog.hidden = false;
     track('save_image_inapp_help_' + inApp);
@@ -4522,7 +4478,6 @@
   var inAppHelpDialog = document.getElementById('inAppDownloadHelpDialog');
   var inAppHelpDismiss = document.getElementById('inAppDownloadHelpDismiss');
   var inAppHelpExternal = document.getElementById('inAppDownloadHelpExternal');
-  var inAppHelpShowImage = document.getElementById('inAppDownloadHelpShowImage');
   if (inAppHelpDismiss) {
     inAppHelpDismiss.addEventListener('click', function (e) {
       e.stopPropagation();
@@ -4549,15 +4504,6 @@
       // LINE 以外は実機メニュー操作が必要なので何もしない（ボタンは disabled のはず）
     });
   }
-  if (inAppHelpShowImage) {
-    inAppHelpShowImage.addEventListener('click', function () {
-      track('save_image_inapp_help_showimage_' + (inAppHelpState.inApp || 'unknown'));
-      if (inAppHelpState.blob && showImageSaveOverlay(inAppHelpState.blob)) {
-        hideInAppDownloadHelpDialog();
-      }
-    });
-  }
-
   // ── 画像プレビューオーバーレイ（長押し保存）──
   var imageSaveOverlay = document.getElementById('imageSaveOverlay');
   var imageSaveOverlayClose = document.getElementById('imageSaveOverlayClose');

@@ -14,7 +14,7 @@
     'data.js?v=exercise-v9',
     'secret-compat-detail-data.js?v=exercise-scd19',
   ];
-  var APP_SCRIPT = 'app.js?v=exercise-v290';
+  var APP_SCRIPT = 'app.js?v=exercise-v296';
   var OPTION_LABEL_FALLBACK = [
     'とても賛成',
     '賛成',
