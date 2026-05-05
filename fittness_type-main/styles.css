@@ -2028,6 +2028,7 @@ body.secret-unlocked-seen .secret-compat--intro { animation: none; }
   font-weight: 700;
   line-height: 1.65;
 }
+.share-steps--plain { padding-left: 16px; }
 .share-steps__highlight {
   color: var(--red);
   font-weight: 900;

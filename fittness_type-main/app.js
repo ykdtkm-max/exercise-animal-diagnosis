@@ -2771,7 +2771,7 @@
   }
 
   function buildInAppHelpBody(inApp) {
-    return '<li>' + inAppDisplayName(inApp) + ' 内のブラウザでは直接保存できないため、ブラウザを切り替えてもう一度「保存」をタップしてください。</li>';
+    return inAppDisplayName(inApp) + ' 内のブラウザでは直接保存できないため、ブラウザを切り替えてもう一度「保存」をタップしてください。';
   }
 
   function showInAppDownloadHelpDialog(inApp, blob, filename) {
