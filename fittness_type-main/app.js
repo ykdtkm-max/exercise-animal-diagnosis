@@ -878,11 +878,12 @@
 
       var leftOn  = !neutral && !isPlus ? ' is-on' : '';
       var rightOn = !neutral && isPlus ? ' is-on' : '';
-      var fillStyle = neutral
-        ? 'left:50%;width:0%;'
-        : isPlus
-          ? 'left:50%;width:' + pct + '%;'
-          : 'right:50%;width:' + pct + '%;';
+      // 中心(50%)の左右どちら側に伸ばすかを `data-side` に持たせ、CSS で left/right を切替。
+      // インライン style.width には目標値（%）を直接入れる:
+      //   - JS が動かなくても、CSS が読み込まれていなくても、最終的にバーは正しい幅で表示される
+      //   - 初回フィルアニメーションは @keyframes axisFillIn で 0% → インライン値 へ自動補間される
+      var sideAttr = neutral ? 'center' : (isPlus ? 'right' : 'left');
+      var targetW = neutral ? 0 : pct;
 
       var normLabel = neutral ? '0' : String(Math.abs(norm));
       var normAlignClass = neutral ? ' axis-row__norm--ctr' : norm < 0 ? ' axis-row__norm--left' : ' axis-row__norm--right';
@@ -899,7 +900,11 @@
               escapeHtml(normLabel) +
             '</div>' +
             '<div class="axis-row__bar">' +
-              '<div class="axis-row__fill" data-norm="' + norm + '" style="' + fillStyle + '"></div>' +
+              '<div class="axis-row__fill"' +
+                ' data-norm="' + norm + '"' +
+                ' data-side="' + sideAttr + '"' +
+                ' data-target-width="' + targetW + '"' +
+                ' style="width:' + targetW + '%;"></div>' +
             '</div>' +
           '</div>' +
           '<div class="axis-row__side' + rightOn + '">' +
@@ -2970,18 +2975,10 @@
 
     bindMotionPlanStripLoops(el.resultSections);
 
-    // バーのアニメーション（少し遅延してwidth適用／サンプル表示時も同一）
-    requestAnimationFrame(function () {
-      requestAnimationFrame(function () {
-        el.resultSections.querySelectorAll('.axis-row__fill').forEach(function (fill) {
-          var w = fill.style.width;
-          fill.style.width = '0%';
-          requestAnimationFrame(function () {
-            fill.style.width = w;
-          });
-        });
-      });
-    });
+    // 軸バーのアニメーションは CSS keyframe (axes.css の @keyframes axisFillIn)
+    // で「0% → インライン style.width」へ自動再生される。
+    // インライン style に最終目標値が入っているため、JS が失火しても
+    // 必ず正しい幅でバーが表示される（旧実装の「JS で 0%→復元」の脆弱性を解消）。
   }
 
   function selectSecretCompatibilityPartner(root, partnerCode) {

@@ -362,9 +362,15 @@ body.app-booting {
 
 .qcard__text {
   margin: 18px 0 4px; font-size: clamp(16px, 5vw, 20px); font-weight: 800; line-height: 1.55;
-  letter-spacing: 0.01em; color: var(--ink); text-wrap: pretty;
-  height: calc(1.55em * 3);
-  overflow: hidden;
+  letter-spacing: 0.01em; color: var(--ink);
+  /* text-wrap: pretty は日本語で行均等化が働き、設問ごとに右側余白がバラつく原因になるため使用しない */
+  text-wrap: wrap;
+  word-break: normal;
+  overflow-wrap: normal;
+  /* 3行ぶんの高さは確保しつつ、短い設問もカード内で中央配置にする（上詰まりによる視覚バラつき防止） */
+  min-height: calc(1.55em * 3);
+  display: flex;
+  align-items: center;
 }
 .qcard__hint { font-size: 12px; color: var(--ink-mute); margin: 8px 0 0; font-weight: 600; }
 .qcard__hint.q-hint--hidden { visibility: hidden; }
@@ -1036,9 +1042,29 @@ body.app-booting {
 .axis-row.a-4 .axis-row__side.is-on .axis-jp { color: var(--green); }
 
 .axis-row__bar { height: 12px; background: var(--paper-mute); border-radius: var(--r-pill); position: relative; overflow: hidden; }
-.axis-row__fill { position: absolute; top: 0; bottom: 0; border-radius: var(--r-pill); transition: width .6s var(--ease-out), left .6s var(--ease-out), right .6s var(--ease-out); }
+/* バーの起点は data-side で決定:
+   - left  (＝マイナス側に伸びる): 中心(right:50%) を起点に左へ伸ばす → right を 50% 固定
+   - right (＝プラス側に伸びる)  : 中心(left:50%) を起点に右へ伸ばす → left を 50% 固定
+   - center (norm=0)             : 中心位置のみ（width:0）
+   インライン style.width に最終目標値（pct%）を直接入れているため、
+   JS が動かなくてもバーは正しい幅で表示される。
+   初回表示時のフィルアニメーションは @keyframes axisFillIn で 0%→インライン値 に補間する。 */
+.axis-row__fill {
+  position: absolute; top: 0; bottom: 0; border-radius: var(--r-pill);
+  animation: axisFillIn .6s var(--ease-out) both;
+  will-change: width;
+}
+.axis-row__fill[data-side="right"]  { left: 50%; right: auto; }
+.axis-row__fill[data-side="left"]   { right: 50%; left: auto; }
+.axis-row__fill[data-side="center"] { left: 50%; right: auto; }
 /* norm≠0 の極微小幅でも視認できる下限（データ上の pct より広がることがある） */
 .axis-row__fill:not([data-norm="0"]) { min-width: 4px; }
+@keyframes axisFillIn {
+  from { width: 0%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .axis-row__fill { animation: none; }
+}
 .axis-row.a-1 .axis-row__fill { background: var(--red); }
 .axis-row.a-2 .axis-row__fill { background: var(--blue); }
 .axis-row.a-3 .axis-row__fill { background: #F2C200; }
