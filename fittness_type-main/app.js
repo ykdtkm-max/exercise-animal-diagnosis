@@ -1472,10 +1472,14 @@
    *   （-24〜+24）。指定された場合は MOTION_FIT[code] の代わりに動的位置を計算する。
    *   - x 軸: structure → +(P) なら左=計画、-(F) なら右=気分
    *   - y 軸: intensity → +(D) なら上=高める、-(C) なら下=整える
+   * @param {{sample?:boolean}} [opts] - 診断結果がない場合のサンプル表示モード。
+   *   true のときはピンと運動スタイル説明文を出さず、「見本です / 診断後はあなたの
+   *   結果が表示されます」オーバーレイを重ねる。
    */
-  function buildMotionFitChart(code, userSums) {
+  function buildMotionFitChart(code, userSums, opts) {
     var ch = CHARS()[code];
     if (!ch) return '';
+    var sample = !!(opts && opts.sample);
     var tint = safeCssColor(ch && ch.tint, '#FFE9C2');
     var leftPct, topPct;
     if (userSums &&
@@ -1498,8 +1502,29 @@
     else if (leftPct < 40) dir = 'right';
     else if (leftPct > 60) dir = 'left';
     var pinCls = 'motion-fit__pin motion-fit__pin--' + dir;
+    var pinHtml = sample
+      ? ''
+      : '<div class="' + pinCls + '" style="left:' + leftPct + '%;top:' + topPct + '%;">' +
+          '<div class="motion-fit__pin-bubble" style="--bubble-bg:' + tint + '">ここだよ！</div>' +
+          '<div class="motion-fit__pin-char" style="background:' + tint + ';">' +
+            charImgFullHtml(code) +
+          '</div>' +
+        '</div>';
+    var overlayHtml = sample
+      ? '<div class="motion-fit-sample-overlay" role="status" aria-live="polite">' +
+          '<p class="motion-fit-sample-overlay__text">' +
+            escapeHtml('見本です') +
+            '<br>' +
+            escapeHtml('診断後はあなたの結果が表示されます') +
+          '</p>' +
+        '</div>'
+      : '';
+    var descHtml = !sample && MOTION_STYLE_TEXTS[code]
+      ? '<div class="motion-fit__desc"><p>' + escapeHtml(MOTION_STYLE_TEXTS[code]) + '</p></div>'
+      : '';
+    var rootCls = sample ? 'motion-fit motion-fit--sample' : 'motion-fit';
     return (
-      '<div class="motion-fit">' +
+      '<div class="' + rootCls + '">' +
         '<div class="motion-fit__wrap">' +
           '<span class="motion-fit__label motion-fit__label--col mf-top">' +
             '<span class="motion-fit__label-text">高める</span>' +
@@ -1510,12 +1535,8 @@
             '<div class="motion-fit__chart">' +
               '<div class="motion-fit__axis-h"></div>' +
               '<div class="motion-fit__axis-v"></div>' +
-              '<div class="' + pinCls + '" style="left:' + leftPct + '%;top:' + topPct + '%;">' +
-                '<div class="motion-fit__pin-bubble" style="--bubble-bg:' + tint + '">ここだよ！</div>' +
-                '<div class="motion-fit__pin-char" style="background:' + tint + ';">' +
-                  charImgFullHtml(code) +
-                '</div>' +
-              '</div>' +
+              pinHtml +
+              overlayHtml +
             '</div>' +
             '<span class="motion-fit__label mf-right">▶ 気分</span>' +
           '</div>' +
@@ -1524,7 +1545,7 @@
             '<span class="motion-fit__label-text">整える</span>' +
           '</span>' +
         '</div>' +
-        (MOTION_STYLE_TEXTS[code] ? '<div class="motion-fit__desc"><p>' + escapeHtml(MOTION_STYLE_TEXTS[code]) + '</p></div>' : '') +
+        descHtml +
       '</div>'
     );
   }
@@ -2055,7 +2076,7 @@
   }
 
   // ── 結果セクション全体 ────────────────────────────────────────────────────────
-  function buildTypeSections(t, axisHtml, userSums) {
+  function buildTypeSections(t, axisHtml, userSums, opts) {
     function sec(num, label, body) {
       return '<div class="sec">' +
         '<div class="sec__head">' +
@@ -2086,9 +2107,10 @@
       ? '<div class="sec"><div class="sec__head"><span class="num">05</span><h3>アニマル相性</h3><span class="deco"></span></div><div class="compat">' + compatInner + '</div></div>'
       : '';
 
+    var sample = !!(opts && opts.sample);
     // 運動チャートと解説を一つのカードにまとめる
     var motionBody =
-      buildMotionFitChart(t.code, userSums) +
+      buildMotionFitChart(t.code, userSums, { sample: sample }) +
       '<div class="motion-plan-stack">' +
         buildMotionPlanBlock('motion-suit-label--good', '向いている運動', t.suit_title, t.suit_text, 'good', 0, t.suit_plans) +
         buildMotionPlanBlock('motion-suit-label--care', '向いていない運動', t.unsuited_title, t.unsuited_text, 'care', 1, t.unsuited_plans) +
@@ -2721,7 +2743,7 @@
       TYPES()[state.lastCode] &&
       isValidStoredSums(state.lastScores) &&
       el.resultSections &&
-      !el.resultSections.querySelector('.axes.axes--sample')
+      !el.resultSections.querySelector('.axes.axes--sample, .motion-fit.motion-fit--sample')
     );
   }
 
@@ -2913,13 +2935,14 @@
     if (heroCodeEl)       heroCodeEl.textContent  = code;
     if (heroCatchEl)      heroCatchEl.textContent = (t.catchphrases && t.catchphrases[0]) || t.tagline;
 
-    // セクション
-    var axisHtml = opts.skipAxisBars ? buildAxisBarsSamplePlaceholderHtml() : buildAxisBarsHtml(sums);
+    // セクション（skipAxisBars はこのページに来る時点で診断結果が無い＝サンプル表示モード）
+    var sample = !!opts.skipAxisBars;
+    var axisHtml = sample ? buildAxisBarsSamplePlaceholderHtml() : buildAxisBarsHtml(sums);
 
     // 2回目以降のユーザーは SECRET UNLOCKED ボタンの sparkle/glow 等の強調アニメを抑制する
     document.body.classList.toggle('secret-unlocked-seen', hasSeenSecretUnlocked());
 
-    el.resultSections.innerHTML = buildTypeSections(t, axisHtml, sums);
+    el.resultSections.innerHTML = buildTypeSections(t, axisHtml, sums, { sample: sample });
 
     bindMotionPlanStripLoops(el.resultSections);
 

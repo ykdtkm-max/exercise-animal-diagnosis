@@ -1057,6 +1057,42 @@ body.app-booting {
   background: transparent;
 }
 
+/* 運動スタイル（motion-fit）の見本表示 — 4軸プロフィールと同じ思想：
+   軸ラベル類は淡くし、チャート上にキャプションを重ねる。説明文（motion-fit__desc）は非表示。 */
+.motion-fit.motion-fit--sample .motion-fit__label,
+.motion-fit.motion-fit--sample .motion-fit__axis-h,
+.motion-fit.motion-fit--sample .motion-fit__axis-v {
+  opacity: 0.62;
+  filter: saturate(0.26);
+}
+
+.motion-fit-sample-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 10px;
+  pointer-events: none;
+  box-sizing: border-box;
+}
+
+.motion-fit-sample-overlay__text {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  max-width: 18em;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.6;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: 0.02em;
+  padding: 8px 4px;
+  background: transparent;
+}
+
 /* おすすめの運動 */
 .suggest { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .suggest__item {
