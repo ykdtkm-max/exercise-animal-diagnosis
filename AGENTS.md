@@ -11,7 +11,7 @@
 - **`.vercel/project.json`** は必ず以下の値を指していること:
 
 ```json
-{"projectId":"prj_AfgWaChlwFfixeQpNwmgNQE5Gtef","orgId":"team_ZaYNsMb3tiWoN970vcPnZ5jX","projectName":"exercise-v2-diagnosis"}
+{"projectId":"prj_Q6CgoAAsdX2yXjT6q6CftXKHfEyq","orgId":"team_ZaYNsMb3tiWoN970vcPnZ5jX","projectName":"exercise-v2-diagnosis"}
 ```
 
 `fit-animal.com` は `exercise-v2-diagnosis` Vercel プロジェクトのカスタムドメインとしてエイリアスされている。`exercise-v2-diagnosis.vercel.app` も alias として動くが、**ユーザーへの案内・告知では必ず `fit-animal.com` を使うこと**。
