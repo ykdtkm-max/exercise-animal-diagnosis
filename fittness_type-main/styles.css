@@ -788,20 +788,28 @@ body.app-booting {
   border-radius: var(--r-lg);
   overflow: visible;
 }
-/* 軸線（点線） */
+/* 軸線（点線）
+   注意: 元は border-color: var(--ink-faint) (#D8D2E0) を使っていたが、白系チャート背景上で
+   薄すぎ、特に上半分はキャラピン (motion-fit__pin, z:5) や「ここだよ！」吹き出しの
+   不透明背景が視覚的に競合し、Y軸線が「消えた」ように見えるという報告があった。
+   --ink-mute (#948CA0) に格上げし、視認性を確保する。
+   ピンとの重なり位置でも線が破線として明確に読み取れる濃度。 */
 .motion-fit__axis-h,
 .motion-fit__axis-v {
   position: absolute;
   background: none;
+  /* 軸線をピンの背面に押し戻す必要はないが、装飾なので明示的に z:1 にして
+     チャート背景 (z:auto) より上、ピン (z:5) より下に配置する。 */
+  z-index: 1;
 }
 .motion-fit__axis-h {
   top: 50%; left: 0; right: 0; height: 0;
-  border-top: 1.5px dashed var(--ink-faint);
+  border-top: 1.5px dashed var(--ink-mute);
   transform: translateY(-50%);
 }
 .motion-fit__axis-v {
   left: 50%; top: 0; bottom: 0; width: 0;
-  border-left: 1.5px dashed var(--ink-faint);
+  border-left: 1.5px dashed var(--ink-mute);
   transform: translateX(-50%);
 }
 /* ラッパー：チャートを上下左右のラベルで囲む */
