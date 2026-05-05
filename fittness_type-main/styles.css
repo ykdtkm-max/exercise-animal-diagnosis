@@ -414,10 +414,6 @@ body.app-booting {
 
 /* 選択マーク (中央の小丸) */
 .likert__opt.is-selected::after {
-  content: ""; position: absolute; inset: 0;
-  display: grid; place-items: center;
-}
-.likert__opt.is-selected::after {
   content: "";
   width: 12px; height: 12px;
   background: #fff;
